@@ -1,0 +1,481 @@
+/* ==========================================================================
+   GLOBAL & RESET STYLES
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #121212;
+  color: #ffffff;
+  line-height: 1.6;
+  overflow-x: hidden;
+  overscroll-behavior-y: none; 
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Utilities */
+.hidden { display: none !important; }
+.active { display: block; }
+.highlight { color: #ff4444; font-weight: 700; }
+
+/* ==========================================================================
+   NAVIGATION
+   ========================================================================== */
+.navbar {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  background: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+.nav-dots {
+  display: flex;
+  gap: 10px;
+}
+
+.nav-dots .dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid #333;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.nav-dots .dot svg {
+    width: 16px; 
+    height: 16px;
+    transition: all 0.3s ease;
+}
+
+.nav-dots .dot:hover {
+  background: rgba(255, 68, 68, 0.1);
+  border-color: #ff4444;
+  color: #ff4444;
+  transform: translateY(-2px);
+}
+
+#loading-indicator {
+    border: none;
+    pointer-events: none;
+    width: 5px; 
+    height: 5px;
+}
+#loading-indicator svg { animation: spin 1s linear infinite; }
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+
+/* ==========================================================================
+   HOME VIEW (User Selection)
+   ========================================================================== */
+.hero-content h1 {
+  font-size: 3rem;
+  font-weight: 300;
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+}
+
+.services-grid.user-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  padding-bottom: 50px;
+  margin-top: 40px;
+}
+
+.user-card {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 30px;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.2s ease, border-color 0.3s ease;
+}
+
+.user-card:hover { transform: translateY(-4px); border-color: #444; }
+.user-card:active { transform: scale(0.98); border-color: #ff4444; }
+
+.service-icon { margin-bottom: 20px; }
+.dot-icon {
+    width: 15px; height: 15px;
+    background: #ff4444;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.4);
+}
+
+.user-card h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  color: #ffffff;
+}
+
+.user-card p { color: #aaa; font-size: 14px; }
+
+
+/* ==========================================================================
+   DASHBOARD VIEW
+   ========================================================================== */
+
+/* Profile Headers */
+.profile-section { margin-top: 30px; margin-bottom: 40px; }
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Progress Bar */
+.progress-track {
+    width: 100%; height: 4px;
+    background: #333;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #2ecc71; 
+    transition: width 0.5s ease;
+}
+
+/* Video Items */
+.video-item {
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid #222;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s ease;
+    position: relative; /* Needed for dropdown positioning */
+}
+.video-item:hover { background: rgba(255,255,255,0.05); }
+
+.video-info h4 { 
+    font-size: 14px; 
+    margin-bottom: 4px; 
+    color: #fff; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 200px;
+}
+.video-info a { 
+    font-size: 12px; color: #666; text-decoration: none;
+}
+.video-info a:hover { color: #ff4444; }
+
+.video-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Status Badges */
+.status-badge {
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-weight: bold;
+    min-width: 70px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+.status-badge:hover { transform: scale(1.05); }
+
+.status-approved { 
+    background: rgba(46, 204, 113, 0.15); 
+    color: #2ecc71; 
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+.status-pending { 
+    background: rgba(255, 165, 0, 0.15); 
+    color: #ffa500; 
+    border: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+/* NEW: Rejected Status Style */
+.status-rejected {
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff4444;
+    border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+/* Icon Buttons (Copy/Delete/Edit) */
+.icon-btn, .edit-btn {
+    background: rgba(255,255,255,0.05); 
+    border: 1px solid #333; 
+    color: #666; 
+    cursor: pointer; 
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s ease;
+}
+.icon-btn { width: 32px; height: 32px; padding: 6px; }
+.edit-btn { width: 28px; height: 28px; padding: 4px; }
+
+.icon-btn:hover, .edit-btn:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-2px);
+}
+.copy-btn:hover { color: #3498db; border-color: rgba(52, 152, 219, 0.3); }
+.delete-btn:hover { color: #ff4444; border-color: rgba(255, 68, 68, 0.3); }
+.edit-btn:hover { color: #3498db; border-color: rgba(52, 152, 219, 0.3); }
+
+.icon-btn svg, .edit-btn svg { stroke: currentColor; }
+
+/* ==========================================================================
+   DROPDOWN MENU (Hamburger)
+   ========================================================================== */
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 40px;
+    background-color: #1a1a1a;
+    min-width: 140px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    z-index: 1001;
+    border-radius: 8px;
+    border: 1px solid #333;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.dropdown-item {
+    color: #fff;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.2s;
+}
+
+.dropdown-item:last-child { border-bottom: none; }
+.dropdown-item:hover { background-color: #252525; }
+
+.item-rejected { color: #ff4444; }
+.item-delete { color: #888; }
+.item-delete:hover { color: #fff; }
+
+
+/* ==========================================================================
+   UI COMPONENTS (Modals, Buttons, Inputs)
+   ========================================================================== */
+
+/* Buttons */
+.cta-button {
+  background: transparent;
+  border: 2px solid #ff4444;
+  color: #ff4444;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+.cta-button:hover {
+  background: #ff4444;
+  color: #121212;
+}
+
+/* FAB (Floating Action Button) */
+.fab-btn {
+    position: fixed;
+    bottom: 80px; right: 20px;
+    background: #1a1a1a;
+    border-radius: 5%;
+    box-shadow: 0 5px 20px rgba(255, 68, 68, 0.3);
+    z-index: 998;
+}
+.fab-btn:hover { transform: scale(1.05); }
+
+/* Bottom Nav */
+.bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; width: 100%;
+    background: #0f0f0f;
+    border-top: 1px solid #222;
+    display: flex;
+    height: 60px;
+    z-index: 999;
+}
+
+.nav-item {
+    flex: 1;
+    display: flex; justify-content: center; align-items: center;
+    color: #666; font-weight: 600; font-size: 14px;
+    cursor: pointer; transition: all 0.3s;
+    user-select: none;
+}
+.nav-item.active {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.05);
+    border-top: 2px solid #ff4444;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; animation: fadeIn 0.3s ease forwards;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    width: 90%; max-width: 400px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    padding: 30px;
+    transform: translateY(20px);
+    animation: slideUp 0.3s ease forwards;
+}
+
+.testimonial-card h3 { margin-bottom: 20px; font-size: 18px; }
+
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes slideUp { to { transform: translateY(0); } }
+
+/* Inputs */
+.mamba-input {
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    padding: 12px;
+    color: #fff;
+    margin-top: 10px;
+    border-radius: 4px;
+    outline: none;
+    font-size: 14px;
+}
+.mamba-input:focus { border-color: #ff4444; }
+
+select.mamba-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+/* ==========================================================================
+   PASSWORD MODAL STYLES
+   ========================================================================== */
+#passwords-container {
+    max-height: 50vh;
+    overflow-y: auto;
+    padding-right: 5px;
+    scrollbar-width: thin;
+    scrollbar-color: #ff4444 #1a1a1a;
+}
+#passwords-container::-webkit-scrollbar { width: 6px; }
+#passwords-container::-webkit-scrollbar-thumb { background-color: #ff4444; border-radius: 3px; }
+
+.password-entry {
+    display: flex; align-items: center;
+    margin-bottom: 10px; padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px; border: 1px solid #222;
+}
+.password-entry:hover { border-color: #444; }
+
+.platform-logo { margin-right: 12px; display: flex; }
+.password-info { flex: 1; font-size: 14px; }
+.profile-label { color: #fff; font-weight: 500; }
+.password-text { color: #aaa; font-family: monospace; margin-left: 5px; }
+
+/* COPY BUTTON STYLES */
+.copy-password-btn {
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    color: #ff4444;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.copy-password-btn:hover {
+    background: rgba(255, 68, 68, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(255, 68, 68, 0.2);
+}
+
+.copy-password-btn:active {
+    transform: scale(0.98);
+}
+
+
+/* ==========================================================================
+   PWA INSTALL BUTTON
+   ========================================================================== */
+.pwa-install-btn {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    border-style: dashed;
+    margin-top: 20px;
+}
+.pwa-install-btn:hover svg { stroke: #121212; }
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+@media (max-width: 480px) {
+    .hero-content h1 { font-size: 2rem; }
+    .video-info h4 { max-width: 120px; }
+    .status-badge { min-width: 60px; font-size: 9px; padding: 3px 6px; }
+    .container { padding: 0 15px; }
+}

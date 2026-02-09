@@ -59,6 +59,38 @@ body {
   letter-spacing: 2px;
 }
 
+/* NEW: Refresh Button Style */
+.refresh-btn {
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    color: #ff4444;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+.refresh-btn:hover {
+    background: rgba(255, 68, 68, 0.2);
+    transform: translateY(-1px);
+}
+.refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+.refresh-btn svg { width: 12px; height: 12px; }
+
+/* Rotating animation for refresh icon when loading */
+.refresh-loading svg {
+    animation: spin 1s linear infinite;
+}
+
 .nav-dots {
   display: flex;
   gap: 10px;
@@ -194,6 +226,8 @@ body {
 }
 .video-item:hover { background: rgba(255,255,255,0.05); }
 
+.video-info { flex: 1; margin-right: 15px; }
+
 .video-info h4 { 
     font-size: 14px; 
     margin-bottom: 4px; 
@@ -203,8 +237,21 @@ body {
 }
 .video-info a { 
     font-size: 12px; color: #666; text-decoration: none;
+    display: inline-block;
 }
 .video-info a:hover { color: #ff4444; }
+
+/* NEW: View Count Style */
+.view-count {
+    color: #aaa; 
+    font-size: 11px; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    margin-top: 6px;
+    font-weight: 500;
+}
+.view-count svg { opacity: 0.7; }
 
 .video-actions { display: flex; gap: 8px; align-items: center; }
 
@@ -232,8 +279,6 @@ body {
     color: #ffa500; 
     border: 1px solid rgba(255, 165, 0, 0.3);
 }
-
-/* NEW: Rejected Status Style */
 .status-rejected {
     background: rgba(255, 68, 68, 0.15);
     color: #ff4444;
@@ -304,7 +349,6 @@ body {
 .item-rejected { color: #ff4444; }
 .item-delete { color: #888; }
 .item-delete:hover { color: #fff; }
-
 
 /* ==========================================================================
    UI COMPONENTS (Modals, Buttons, Inputs)
@@ -478,4 +522,6 @@ select.mamba-input {
     .video-info h4 { max-width: 120px; }
     .status-badge { min-width: 60px; font-size: 9px; padding: 3px 6px; }
     .container { padding: 0 15px; }
+    .refresh-btn span { display: none; } /* Hide 'REFRESH' text on very small screens, keep icon */
+    .refresh-btn { padding: 6px; }
 }

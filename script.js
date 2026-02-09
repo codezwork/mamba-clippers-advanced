@@ -1,11 +1,6 @@
 //
 // --- CONFIGURATION ---
 // PASTE YOUR FIREBASE CONFIG HERE FROM CONSOLE
-// Import the functions you need from the SDKs you need
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDqI6yHiHJ7Ao257KmVaTSOPJ7C3hd9V7U",
   authDomain: "mambaclippers.firebaseapp.com",
@@ -14,6 +9,10 @@ const firebaseConfig = {
   messagingSenderId: "400915321062",
   appId: "1:400915321062:web:8a8ee616725d40ea47eb27"
 };
+
+// --- BACKEND URL ---
+// REPLACE THIS WITH YOUR ACTUAL RENDER URL AFTER DEPLOYING
+const BACKEND_URL = "https://your-mamba-backend.onrender.com/refresh-stats";
 
 // Initialize Firebase
 if (!firebase.apps.length) {
@@ -24,7 +23,7 @@ const db = firebase.firestore();
 // --- STATE MANAGEMENT ---
 let appData = [];
 let currentUser = "";
-let currentPlatform = "TikTok"; // UPDATED: Changed Default to TikTok
+let currentPlatform = "TikTok"; 
 let isLoading = false;
 let profileConfig = {};
 let passwordsData = {};
@@ -253,11 +252,27 @@ function createVideoRow(video) {
     if (isApproved) statusClass = 'status-approved';
     if (isRejected) statusClass = 'status-rejected';
     
+    // Format views: 1200 -> 1.2K
+    const formatViews = (n) => {
+        if (!n) return '0';
+        if (n < 1000) return n;
+        if (n < 1000000) return (n / 1000).toFixed(1) + 'K';
+        return (n / 1000000).toFixed(1) + 'M';
+    };
+
+    const viewsDisplay = video.views !== undefined 
+        ? `<span class="view-count">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+             ${formatViews(video.views)}
+           </span>`
+        : '';
+
     return `
         <div class="video-item">
             <div class="video-info">
                 <h4>${video.title}</h4>
                 <a href="${video.link}" target="_blank">Watch Video &#8599;</a>
+                ${viewsDisplay}
             </div>
             <div class="video-actions">
                 <div class="status-badge ${statusClass}" onclick="debouncedToggleStatus('${video.id}', '${video.status}')">
@@ -302,6 +317,53 @@ function createVideoRow(video) {
         </div>
     `;
 }
+
+// --- REFRESH STATS FUNCTION (NEW) ---
+async function refreshStats() {
+    const btn = document.getElementById('refresh-btn');
+    const btnText = btn.querySelector('span');
+    const originalText = btnText.innerText;
+    
+    // 1. Enter Loading State
+    btn.classList.add('refresh-loading');
+    btn.disabled = true;
+    btnText.innerText = "UPDATING...";
+    
+    // Inform user this might take time
+    showToast("Refreshing stats... (may take 30s if server is sleeping)", "info");
+
+    try {
+        // 2. Call the Render Backend
+        // Note: Replace BACKEND_URL with your real Render URL
+        const response = await fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) throw new Error("Server responded with error");
+
+        const result = await response.json();
+        
+        // 3. Success Feedback
+        if (result.status === 'success') {
+            showToast(`Updated stats for ${result.updated} videos!`, 'success');
+        } else {
+            showToast('Update returned an error.', 'error');
+        }
+
+    } catch (error) {
+        console.error(error);
+        showToast('Failed to connect. Is the backend URL set correctly?', 'error');
+    } finally {
+        // 4. Reset Button State
+        btn.classList.remove('refresh-loading');
+        btn.disabled = false;
+        btnText.innerText = originalText;
+    }
+}
+
 
 // --- ACTIONS (CRUD) ---
 
@@ -380,7 +442,8 @@ async function submitNewVideo() {
         profile: profile,
         title: title,
         link: link,
-        status: "Pending" // Default status
+        status: "Pending", // Default status
+        views: 0 // Default views
     };
 
     try {

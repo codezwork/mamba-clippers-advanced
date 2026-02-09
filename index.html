@@ -40,6 +40,7 @@
                     <p>Gangstar ★ - Too Sexy Phisique</p>
                 </div>
             </div>
+            
             <div id="install-container-home" class="hidden" style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
                 <button class="cta-button pwa-install-btn" onclick="installPWA()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-right: 10px; vertical-align: middle;">
@@ -57,9 +58,20 @@
     <section id="dashboard-view" class="app-view hidden">
         <nav class="navbar" style="position: sticky;">
             <div class="nav-container">
-                <div class="logo" onclick="goHome()" style="cursor: pointer;">
-                    <span style="color: #ff4444;">&#8592;</span> <span id="current-user-name">USER</span>
+                <div class="logo-area" style="display: flex; align-items: center; gap: 15px;">
+                    <div class="logo" onclick="goHome()" style="cursor: pointer;">
+                        <span style="color: #ff4444;">&#8592;</span> <span id="current-user-name">USER</span>
+                    </div>
+                    <button id="refresh-btn" class="refresh-btn" onclick="refreshStats()">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 4v6h-6"></path>
+                            <path d="M1 20v-6h6"></path>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        <span>REFRESH</span>
+                    </button>
                 </div>
+
                 <div class="nav-dots">
                     <div class="dot" id="passwords-btn" onclick="openPasswordsModal()" 
                         style="cursor: pointer; display: flex; align-items: center; justify-content: center;">
@@ -87,9 +99,7 @@
         </nav>
 
         <div class="container" style="padding-bottom: 100px;">
-            
             <div id="profiles-container"></div>
-
             <button class="cta-button fab-btn" onclick="toggleAddModal(true)">+ ADD VIDEO</button>
         </div>
 
@@ -106,8 +116,7 @@
     <div id="add-modal" class="modal-overlay hidden">
         <div class="modal-content testimonial-card">
             <h3>ADD NEW VIDEO</h3>
-            <select id="new-profile-select" class="mamba-input">
-                </select>
+            <select id="new-profile-select" class="mamba-input"></select>
             <input type="text" id="new-title" placeholder="Video Title" class="mamba-input">
             <input type="text" id="new-link" placeholder="Video Link" class="mamba-input">
             
@@ -121,8 +130,7 @@
     <div id="profile-settings-modal" class="modal-overlay hidden">
         <div class="modal-content testimonial-card">
             <h3>Edit Profile Names</h3>
-            <p style="color: #aaa; font-size: 12px; margin-bottom: 20px;" id="profile-settings-info">
-                </p>
+            <p style="color: #aaa; font-size: 12px; margin-bottom: 20px;" id="profile-settings-info"></p>
             
             <input type="text" id="profile-name-1" placeholder="Profile 1 Name" class="mamba-input">
             <input type="text" id="profile-name-2" placeholder="Profile 2 Name" class="mamba-input">
@@ -130,11 +138,9 @@
             
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="cta-button" onclick="saveProfileNames()">SAVE CHANGES</button>
-                <button class="cta-button" style="border-color: #444; color: #aaa;" 
-                        onclick="toggleProfileSettingsModal(false)">
-                    CANCEL
-                </button>
+                <button class="cta-button" style="border-color: #444; color: #aaa;" onclick="toggleProfileSettingsModal(false)">CANCEL</button>
             </div>
+            
             <div id="install-container-settings" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; width: 100%;">
                 <button class="cta-button pwa-install-btn" onclick="installPWA()" style="width: 100%; display: flex; align-items: center; justify-content: center; border-style: dashed;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-right: 10px;">
@@ -147,28 +153,25 @@
     </div>
 
     <div id="passwords-modal" class="modal-overlay hidden">
-    <div class="modal-content testimonial-card" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
-        <h3>PASSWORDS LOG</h3>
-        <div id="passwords-container" style="margin-top: 20px;">
+        <div class="modal-content testimonial-card" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
+            <h3>PASSWORDS LOG</h3>
+            <div id="passwords-container" style="margin-top: 20px;"></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="cta-button" onclick="togglePasswordsModal(false)">CLOSE</button>
+            </div>
         </div>
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="cta-button" onclick="togglePasswordsModal(false)">CLOSE</button>
-        </div>
-    </div>
     </div>
 
     <script src="script.js"></script>
     <script>
-    // Force unregister all service workers to clear cache issues
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-        registration.unregister();
-        } 
-    });
-    // Clear caches
-    caches.keys().then(function(names) {
-        for (let name of names) caches.delete(name);
-    });
+    // Service worker registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('SW registered'))
+                .catch(err => console.log('SW error:', err));
+        });
+    }
     </script>
 </body>
 </html>

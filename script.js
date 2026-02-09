@@ -12,7 +12,7 @@ const firebaseConfig = {
 
 // --- BACKEND URL ---
 // REPLACE THIS WITH YOUR ACTUAL RENDER URL AFTER DEPLOYING
-const BACKEND_URL = "https://your-mamba-backend.onrender.com/refresh-stats";
+const BACKEND_URL = "https://mamba-clippers-backend-views-scrapper.onrender.com/refresh-stats";
 
 // Initialize Firebase
 if (!firebase.apps.length) {

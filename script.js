@@ -319,51 +319,82 @@ function createVideoRow(video) {
 }
 
 // --- REFRESH STATS FUNCTION (NEW) ---
+// --- REVISED REFRESH STATS FUNCTION (ONE-BY-ONE) ---
 async function refreshStats() {
     const btn = document.getElementById('refresh-btn');
     const btnText = btn.querySelector('span');
     const originalText = btnText.innerText;
     
-    // 1. Enter Loading State
+    // 1. Get List of Videos to Update
+    // We filter for videos that belong to the current user and have a link
+    const videosToUpdate = appData.filter(v => v.link && v.link.startsWith('http'));
+
+    if (videosToUpdate.length === 0) {
+        showToast("No videos found to update.", "info");
+        return;
+    }
+
+    // 2. Enter Loading State
     btn.classList.add('refresh-loading');
     btn.disabled = true;
-    btnText.innerText = "UPDATING...";
     
-    // Inform user this might take time
-    showToast("Refreshing stats... (may take 30s if server is sleeping)", "info");
+    let successCount = 0;
+    let failCount = 0;
 
-    try {
-        // 2. Call the Render Backend
-        // Note: Replace BACKEND_URL with your real Render URL
-        const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+    // 3. Loop through videos one by one
+    // We use a regular for...of loop to ensure they happen in order (Sequential)
+    // This prevents overwhelming the server or getting rate-limited
+    for (let i = 0; i < videosToUpdate.length; i++) {
+        const video = videosToUpdate[i];
+        
+        // Update Button Text with Progress
+        btnText.innerText = `Checking ${i + 1}/${videosToUpdate.length}...`;
+
+        try {
+            // Updated Endpoint: /check-video
+            // Note: Make sure BACKEND_URL points to the root, or adjust this line
+            // If BACKEND_URL is "https://.../refresh-stats", change it to just "https://...onrender.com"
+            // Or just hardcode the new endpoint here:
+            
+            const rootUrl = BACKEND_URL.replace('/refresh-stats', ''); // simple cleanup just in case
+            const targetUrl = `${rootUrl}/check-video`;
+
+            const response = await fetch(targetUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: video.id,
+                    url: video.link
+                })
+            });
+
+            if (response.ok) {
+                successCount++;
+            } else {
+                failCount++;
+                console.warn(`Failed to update ${video.title}`);
             }
-        });
-        
-        if (!response.ok) throw new Error("Server responded with error");
 
-        const result = await response.json();
-        
-        // 3. Success Feedback
-        if (result.status === 'success') {
-            showToast(`Updated stats for ${result.updated} videos!`, 'success');
-        } else {
-            showToast('Update returned an error.', 'error');
+        } catch (error) {
+            console.error(`Error updating ${video.title}:`, error);
+            failCount++;
         }
+        
+        // Small pause to be gentle on the server (optional)
+        await new Promise(r => setTimeout(r, 500));
+    }
 
-    } catch (error) {
-        console.error(error);
-        showToast('Failed to connect. Is the backend URL set correctly?', 'error');
-    } finally {
-        // 4. Reset Button State
-        btn.classList.remove('refresh-loading');
-        btn.disabled = false;
-        btnText.innerText = originalText;
+    // 4. Reset Button State & Show Summary
+    btn.classList.remove('refresh-loading');
+    btn.disabled = false;
+    btnText.innerText = originalText;
+
+    if (successCount > 0) {
+        showToast(`Updated ${successCount} videos! (${failCount} skipped)`, 'success');
+    } else {
+        showToast('Update finished, but no videos changed.', 'info');
     }
 }
-
 
 // --- ACTIONS (CRUD) ---
 

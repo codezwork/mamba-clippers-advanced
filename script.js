@@ -188,6 +188,15 @@ function updateProfileDropdown() {
     });
 }
 
+// --- HELPER: Format View Count ---
+// Moved outside so it can be used by both createVideoRow and renderDashboard
+function formatViews(n) {
+    if (!n) return '0';
+    if (n < 1000) return n;
+    if (n < 1000000) return (n / 1000).toFixed(1) + 'K';
+    return (n / 1000000).toFixed(1) + 'M';
+}
+
 function renderDashboard() {
     const container = document.getElementById('profiles-container');
     container.innerHTML = "";
@@ -212,13 +221,22 @@ function renderDashboard() {
         const approved = videos.filter(v => v.status === "Approved").length;
         const progressPct = total === 0 ? 0 : (approved / total) * 100;
 
+        // --- NEW: CALCULATE TOTAL VIEWS FOR PROFILE ---
+        const totalProfileViews = videos.reduce((acc, curr) => {
+            const v = curr.views ? parseInt(curr.views) : 0;
+            return acc + v;
+        }, 0);
+        
+        const formattedTotalViews = formatViews(totalProfileViews);
+
         const section = document.createElement('div');
         section.className = 'profile-section';
         
         section.innerHTML = `
             <div class="profile-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                     <h3 style="color:#fff; font-size: 16px;">${displayName}</h3>
+                    
                     <button class="icon-btn edit-btn" onclick="openProfileSettings(${index})" style="padding: 4px;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                             <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -226,6 +244,15 @@ function renderDashboard() {
                             <path d="M14.91 4.15002C15.58 6.54002 17.45 8.41002 19.85 9.09002" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
+
+                    <div class="total-views-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        ${formattedTotalViews}
+                    </div>
+
                 </div>
                 <span style="color:#666; font-size: 12px;">${approved}/${total} Approved</span>
             </div>
@@ -252,14 +279,6 @@ function createVideoRow(video) {
     if (isApproved) statusClass = 'status-approved';
     if (isRejected) statusClass = 'status-rejected';
     
-    // Format views: 1200 -> 1.2K
-    const formatViews = (n) => {
-        if (!n) return '0';
-        if (n < 1000) return n;
-        if (n < 1000000) return (n / 1000).toFixed(1) + 'K';
-        return (n / 1000000).toFixed(1) + 'M';
-    };
-
     const viewsDisplay = video.views !== undefined 
         ? `<span class="view-count">
              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>

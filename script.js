@@ -28,6 +28,7 @@ let isLoading = false;
 let profileConfig = {};
 let passwordsData = {};
 let unsubscribeVideos = null;
+let currentEditingId = null; // NEW: To track which video is being edited
 
 // --- DEBOUNCE UTILITY ---
 let debounceTimer;
@@ -188,8 +189,23 @@ function updateProfileDropdown() {
     });
 }
 
+function updateEditProfileDropdown() {
+    const select = document.getElementById('edit-profile-select');
+    if (!select) return;
+    
+    select.innerHTML = '';
+    const profileNames = getCurrentProfileNames();
+    
+    profileNames.forEach((name, index) => {
+        const option = document.createElement('option');
+        option.value = `Profile ${index + 1}`; 
+        option.textContent = name;
+        select.appendChild(option);
+    });
+}
+
+
 // --- HELPER: Format View Count ---
-// Moved outside so it can be used by both createVideoRow and renderDashboard
 function formatViews(n) {
     if (!n) return '0';
     if (n < 1000) return n;
@@ -221,7 +237,6 @@ function renderDashboard() {
         const approved = videos.filter(v => v.status === "Approved").length;
         const progressPct = total === 0 ? 0 : (approved / total) * 100;
 
-        // --- NEW: CALCULATE TOTAL VIEWS FOR PROFILE ---
         const totalProfileViews = videos.reduce((acc, curr) => {
             const v = curr.views ? parseInt(curr.views) : 0;
             return acc + v;
@@ -315,6 +330,14 @@ function createVideoRow(video) {
                     </button>
                     
                     <div id="dropdown-${video.id}" class="dropdown-menu hidden">
+                         <div class="dropdown-item item-edit" onclick="openEditVideoModal('${video.id}')">
+                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                             </svg>
+                             Edit Details
+                         </div>
+                         
                          <div class="dropdown-item item-rejected" onclick="markAsRejected('${video.id}')">
                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
@@ -338,14 +361,12 @@ function createVideoRow(video) {
 }
 
 // --- REFRESH STATS FUNCTION (NEW) ---
-// --- REVISED REFRESH STATS FUNCTION (ONE-BY-ONE) ---
 async function refreshStats() {
     const btn = document.getElementById('refresh-btn');
     const btnText = btn.querySelector('span');
     const originalText = btnText.innerText;
     
     // 1. Get List of Videos to Update
-    // We filter for videos that belong to the current user and have a link
     const videosToUpdate = appData.filter(v => v.link && v.link.startsWith('http'));
 
     if (videosToUpdate.length === 0) {
@@ -361,21 +382,12 @@ async function refreshStats() {
     let failCount = 0;
 
     // 3. Loop through videos one by one
-    // We use a regular for...of loop to ensure they happen in order (Sequential)
-    // This prevents overwhelming the server or getting rate-limited
     for (let i = 0; i < videosToUpdate.length; i++) {
         const video = videosToUpdate[i];
-        
-        // Update Button Text with Progress
         btnText.innerText = `Checking ${i + 1}/${videosToUpdate.length}...`;
 
         try {
-            // Updated Endpoint: /check-video
-            // Note: Make sure BACKEND_URL points to the root, or adjust this line
-            // If BACKEND_URL is "https://.../refresh-stats", change it to just "https://...onrender.com"
-            // Or just hardcode the new endpoint here:
-            
-            const rootUrl = BACKEND_URL.replace('/refresh-stats', ''); // simple cleanup just in case
+            const rootUrl = BACKEND_URL.replace('/refresh-stats', ''); 
             const targetUrl = `${rootUrl}/check-video`;
 
             const response = await fetch(targetUrl, {
@@ -399,7 +411,6 @@ async function refreshStats() {
             failCount++;
         }
         
-        // Small pause to be gentle on the server (optional)
         await new Promise(r => setTimeout(r, 500));
     }
 
@@ -419,7 +430,6 @@ async function refreshStats() {
 
 // Toggle Dropdown Visibility
 function toggleDropdown(id) {
-    // Close all other open dropdowns first
     document.querySelectorAll('.dropdown-menu').forEach(menu => {
         if(menu.id !== `dropdown-${id}`) menu.classList.add('hidden');
     });
@@ -441,17 +451,11 @@ async function markAsRejected(id) {
         showToast('Failed to update status', 'error');
         console.error(error);
     }
-    // Close dropdown immediately
     const menu = document.getElementById(`dropdown-${id}`);
     if(menu) menu.classList.add('hidden');
 }
 
 const debouncedToggleStatus = debounce(async function(id, currentStatus) {
-    // Logic: 
-    // If "Approved" -> go to "Pending"
-    // If "Pending" -> go to "Approved"
-    // If "Rejected" -> go to "Approved" (as per user request: "when clicked it will turn the status 'Approved'")
-    
     let newStatus = "Approved";
     
     if (currentStatus === "Approved") {
@@ -507,6 +511,68 @@ async function submitNewVideo() {
     }
     showLoading(false);
 }
+
+// --- NEW EDIT FUNCTIONS ---
+
+function openEditVideoModal(id) {
+    // 1. Find the video in appData
+    const video = appData.find(v => v.id === id);
+    if (!video) {
+        showToast("Error finding video data", "error");
+        return;
+    }
+
+    // 2. Set global currentEditingId
+    currentEditingId = id;
+
+    // 3. Populate inputs
+    updateEditProfileDropdown(); // Ensure dropdown has correct options
+    document.getElementById('edit-profile-select').value = video.profile;
+    document.getElementById('edit-title').value = video.title;
+    document.getElementById('edit-link').value = video.link;
+
+    // 4. Show Modal
+    // Hide the dropdown menu first
+    toggleDropdown(id); 
+    toggleEditVideoModal(true);
+}
+
+function toggleEditVideoModal(show) {
+    const modal = document.getElementById('edit-video-modal');
+    if(show) modal.classList.remove('hidden');
+    else modal.classList.add('hidden');
+}
+
+async function saveVideoEdit() {
+    if (!currentEditingId) return;
+
+    const profile = document.getElementById('edit-profile-select').value;
+    const title = document.getElementById('edit-title').value.trim();
+    const link = document.getElementById('edit-link').value.trim();
+    
+    if(!title || !link) {
+        showToast('Please fill all fields', 'error');
+        return;
+    }
+
+    toggleEditVideoModal(false);
+    showLoading(true);
+
+    try {
+        await db.collection('videos').doc(currentEditingId).update({
+            profile: profile,
+            title: title,
+            link: link
+        });
+        showToast('Video details updated!', 'success');
+    } catch (error) {
+        showToast('Failed to update video', 'error');
+        console.error(error);
+    }
+    showLoading(false);
+    currentEditingId = null;
+}
+
 
 async function deleteVideo(id) {
     if(!confirm("Are you sure you want to delete this video?")) return;

@@ -127,6 +127,20 @@
         </div>
     </div>
 
+    <div id="edit-video-modal" class="modal-overlay hidden">
+        <div class="modal-content testimonial-card">
+            <h3>EDIT VIDEO</h3>
+            <select id="edit-profile-select" class="mamba-input"></select>
+            <input type="text" id="edit-title" placeholder="Video Title" class="mamba-input">
+            <input type="text" id="edit-link" placeholder="Video Link" class="mamba-input">
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="cta-button" onclick="saveVideoEdit()">UPDATE</button>
+                <button class="cta-button" style="border-color: #444; color: #aaa;" onclick="toggleEditVideoModal(false)">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
     <div id="profile-settings-modal" class="modal-overlay hidden">
         <div class="modal-content testimonial-card">
             <h3>Edit Profile Names</h3>

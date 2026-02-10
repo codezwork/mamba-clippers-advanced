@@ -28,7 +28,8 @@ let isLoading = false;
 let profileConfig = {};
 let passwordsData = {};
 let unsubscribeVideos = null;
-let currentEditingId = null; // NEW: To track which video is being edited
+let currentEditingId = null;
+let currentSortOrder = "newest"; // NEW: Default sort
 
 // --- DEBOUNCE UTILITY ---
 let debounceTimer;
@@ -213,6 +214,49 @@ function formatViews(n) {
     return (n / 1000000).toFixed(1) + 'M';
 }
 
+// --- NEW: SORTING LOGIC ---
+function toggleSortMenu() {
+    const menu = document.getElementById('sort-menu');
+    if(menu) menu.classList.toggle('hidden');
+}
+
+function setSort(order) {
+    currentSortOrder = order;
+    toggleSortMenu();
+    renderDashboard();
+    
+    // Update button text to reflect sort
+    const btnSpan = document.querySelector('#sort-btn span');
+    if(btnSpan) {
+        if(order === 'newest') btnSpan.innerText = 'NEWEST';
+        else if(order === 'oldest') btnSpan.innerText = 'OLDEST';
+        else if(order === 'views') btnSpan.innerText = 'VIEWS';
+        else if(order === 'name') btnSpan.innerText = 'A-Z';
+    }
+}
+
+function sortVideos(videos) {
+    return videos.sort((a, b) => {
+        if (currentSortOrder === 'views') {
+            const vA = a.views ? parseInt(a.views) : 0;
+            const vB = b.views ? parseInt(b.views) : 0;
+            return vB - vA;
+        } else if (currentSortOrder === 'name') {
+            return a.title.localeCompare(b.title);
+        } else if (currentSortOrder === 'oldest') {
+            // If createdAt exists use it, otherwise treat as very old (0)
+            const tA = a.createdAt ? a.createdAt.seconds : 0;
+            const tB = b.createdAt ? b.createdAt.seconds : 0;
+            return tA - tB;
+        } else {
+            // Default: Newest first
+            const tA = a.createdAt ? a.createdAt.seconds : 0;
+            const tB = b.createdAt ? b.createdAt.seconds : 0;
+            return tB - tA;
+        }
+    });
+}
+
 function renderDashboard() {
     const container = document.getElementById('profiles-container');
     container.innerHTML = "";
@@ -230,9 +274,12 @@ function renderDashboard() {
     });
 
     ["Profile 1", "Profile 2", "Profile 3"].forEach((profileKey, index) => {
-        const videos = grouped[profileKey];
+        let videos = grouped[profileKey];
         const displayName = profileNames[index];
         
+        // --- APPLY SORTING HERE ---
+        videos = sortVideos(videos);
+
         const total = videos.length;
         const approved = videos.filter(v => v.status === "Approved").length;
         const progressPct = total === 0 ? 0 : (approved / total) * 100;
@@ -496,8 +543,9 @@ async function submitNewVideo() {
         profile: profile,
         title: title,
         link: link,
-        status: "Pending", // Default status
-        views: 0 // Default views
+        status: "Pending", 
+        views: 0,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp() // NEW: Save timestamp
     };
 
     try {

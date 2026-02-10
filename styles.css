@@ -369,6 +369,8 @@ body {
 .item-rejected { color: #ff4444; }
 .item-delete { color: #888; }
 .item-delete:hover { color: #fff; }
+.item-edit { color: #3498db; }
+.item-edit:hover { color: #fff; }
 
 /* ==========================================================================
    UI COMPONENTS (Modals, Buttons, Inputs)

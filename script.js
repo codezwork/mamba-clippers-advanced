@@ -29,7 +29,13 @@ let profileConfig = {};
 let passwordsData = {};
 let unsubscribeVideos = null;
 let currentEditingId = null;
-let currentSortOrder = "newest"; // NEW: Default sort
+let currentSortOrder = "newest"; 
+
+// --- SELECTION MODE STATE (NEW) ---
+let isSelectionMode = false;
+let selectedVideoIds = new Set();
+let longPressTimer = null;
+const LONG_PRESS_DURATION = 500; // ms
 
 // --- DEBOUNCE UTILITY ---
 let debounceTimer;
@@ -104,6 +110,7 @@ function openDashboard(user) {
 }
 
 function goHome() {
+    exitSelectionMode(); // Ensure we exit mode when leaving
     document.getElementById('dashboard-view').classList.add('hidden');
     document.getElementById('home-view').classList.remove('hidden');
     appData = [];
@@ -115,6 +122,7 @@ function goHome() {
 }
 
 function switchPlatform(platform, element) {
+    exitSelectionMode(); // Reset selection on tab switch
     currentPlatform = platform;
     document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
     element.classList.add('active');
@@ -125,20 +133,17 @@ function switchPlatform(platform, element) {
 async function fetchData() {
   showLoading(true);
   try {
-    // 1. Fetch Profile Config (from global settings)
     const settingsDoc = await db.collection('settings').doc('global').get();
     if (settingsDoc.exists) {
         profileConfig = settingsDoc.data().profileConfig || {};
     }
 
-    // 2. Fetch Passwords
     const passwordsSnapshot = await db.collection('passwords log').get();
     passwordsData = {};
     passwordsSnapshot.forEach(doc => {
         passwordsData[doc.id] = doc.data();
     });
 
-    // 3. Real-time listener for Videos
     if (unsubscribeVideos) unsubscribeVideos();
 
     unsubscribeVideos = db.collection('videos')
@@ -206,7 +211,6 @@ function updateEditProfileDropdown() {
 }
 
 
-// --- HELPER: Format View Count ---
 function formatViews(n) {
     if (!n) return '0';
     if (n < 1000) return n;
@@ -214,7 +218,6 @@ function formatViews(n) {
     return (n / 1000000).toFixed(1) + 'M';
 }
 
-// --- NEW: SORTING LOGIC ---
 function toggleSortMenu() {
     const menu = document.getElementById('sort-menu');
     if(menu) menu.classList.toggle('hidden');
@@ -225,7 +228,6 @@ function setSort(order) {
     toggleSortMenu();
     renderDashboard();
     
-    // Update button text to reflect sort
     const btnSpan = document.querySelector('#sort-btn span');
     if(btnSpan) {
         if(order === 'newest') btnSpan.innerText = 'NEWEST';
@@ -244,12 +246,10 @@ function sortVideos(videos) {
         } else if (currentSortOrder === 'name') {
             return a.title.localeCompare(b.title);
         } else if (currentSortOrder === 'oldest') {
-            // If createdAt exists use it, otherwise treat as very old (0)
             const tA = a.createdAt ? a.createdAt.seconds : 0;
             const tB = b.createdAt ? b.createdAt.seconds : 0;
             return tA - tB;
         } else {
-            // Default: Newest first
             const tA = a.createdAt ? a.createdAt.seconds : 0;
             const tB = b.createdAt ? b.createdAt.seconds : 0;
             return tB - tA;
@@ -257,6 +257,171 @@ function sortVideos(videos) {
     });
 }
 
+// --- NEW: LONG PRESS & SELECTION LOGIC ---
+
+function handleRowTouchStart(e, id) {
+    if (isSelectionMode) return; // If already in mode, handle as normal click/toggle
+    
+    longPressTimer = setTimeout(() => {
+        enterSelectionMode(id);
+        if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback
+    }, LONG_PRESS_DURATION);
+}
+
+function handleRowTouchEnd(e) {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
+function handleRowTouchMove(e) {
+    // If user scrolls, cancel long press
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
+// Desktop mouse events (for testing on desktop)
+function handleRowMouseDown(e, id) {
+    if (isSelectionMode) return;
+    // Only left click
+    if (e.button !== 0) return;
+    
+    longPressTimer = setTimeout(() => {
+        enterSelectionMode(id);
+    }, LONG_PRESS_DURATION);
+}
+
+function handleRowMouseUp(e) {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
+function handleRowClick(e, id) {
+    // If not in selection mode, normal behavior (bubble up to links etc)
+    // If IS in selection mode, toggle selection
+    if (isSelectionMode) {
+        e.preventDefault();
+        e.stopPropagation(); // Stop link clicks
+        toggleSelection(id);
+    }
+}
+
+function enterSelectionMode(initialId) {
+    isSelectionMode = true;
+    selectedVideoIds.clear();
+    toggleSelection(initialId);
+    
+    document.body.classList.add('selection-mode');
+    
+    // Switch Navbar
+    document.getElementById('nav-logo-group').classList.add('hidden');
+    document.getElementById('selection-actions').classList.remove('hidden');
+    
+    // Update UI immediately (add classes to rows)
+    renderDashboard(); // Re-render to show checkboxes state
+}
+
+function exitSelectionMode() {
+    isSelectionMode = false;
+    selectedVideoIds.clear();
+    
+    document.body.classList.remove('selection-mode');
+    
+    // Switch Navbar Back
+    document.getElementById('nav-logo-group').classList.remove('hidden');
+    document.getElementById('selection-actions').classList.add('hidden');
+    
+    // Reset FAB
+    const fab = document.getElementById('main-fab');
+    fab.innerText = "+ ADD VIDEO";
+    fab.classList.remove('fab-delete-mode');
+    
+    renderDashboard();
+}
+
+function toggleSelection(id) {
+    if (selectedVideoIds.has(id)) {
+        selectedVideoIds.delete(id);
+    } else {
+        selectedVideoIds.add(id);
+    }
+    
+    // If all deselected, should we exit mode? Optional. Lets keep it active.
+    if (selectedVideoIds.size === 0) {
+        // Optional: exitSelectionMode(); 
+    }
+    
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    // Update individual row styles without full re-render
+    document.querySelectorAll('.video-item').forEach(row => {
+        const id = row.id.replace('video-', '');
+        const checkbox = row.querySelector('.selection-checkbox');
+        
+        if (selectedVideoIds.has(id)) {
+            row.classList.add('selected');
+        } else {
+            row.classList.remove('selected');
+        }
+    });
+    
+    // Update FAB
+    const fab = document.getElementById('main-fab');
+    const count = selectedVideoIds.size;
+    
+    if (count > 0) {
+        fab.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> DELETE (${count})`;
+        fab.classList.add('fab-delete-mode');
+    } else {
+        fab.innerHTML = "SELECT ITEMS";
+        fab.classList.remove('fab-delete-mode');
+    }
+}
+
+// Global FAB Handler
+function handleFabClick() {
+    if (isSelectionMode) {
+        if (selectedVideoIds.size > 0) {
+            deleteSelectedVideos();
+        } else {
+            showToast("Select videos to delete", "info");
+        }
+    } else {
+        toggleAddModal(true);
+    }
+}
+
+async function deleteSelectedVideos() {
+    if (!confirm(`Are you sure you want to delete ${selectedVideoIds.size} videos?`)) return;
+    
+    showLoading(true);
+    const batch = db.batch();
+    
+    selectedVideoIds.forEach(id => {
+        const ref = db.collection('videos').doc(id);
+        batch.delete(ref);
+    });
+    
+    try {
+        await batch.commit();
+        showToast(`Deleted ${selectedVideoIds.size} videos.`, 'success');
+        exitSelectionMode();
+    } catch (error) {
+        showToast("Error deleting videos.", "error");
+        console.error(error);
+    }
+    showLoading(false);
+}
+
+
+// --- RENDER DASHBOARD (UPDATED) ---
 function renderDashboard() {
     const container = document.getElementById('profiles-container');
     container.innerHTML = "";
@@ -277,7 +442,6 @@ function renderDashboard() {
         let videos = grouped[profileKey];
         const displayName = profileNames[index];
         
-        // --- APPLY SORTING HERE ---
         videos = sortVideos(videos);
 
         const total = videos.length;
@@ -330,6 +494,8 @@ function renderDashboard() {
     });
     
     updateProfileDropdown();
+    // After render, make sure UI matches selection state
+    if(isSelectionMode) updateSelectionUI();
 }
 
 function createVideoRow(video) {
@@ -341,6 +507,9 @@ function createVideoRow(video) {
     if (isApproved) statusClass = 'status-approved';
     if (isRejected) statusClass = 'status-rejected';
     
+    // Check if selected
+    const isSelected = selectedVideoIds.has(video.id);
+
     const viewsDisplay = video.views !== undefined 
         ? `<span class="view-count">
              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -348,8 +517,23 @@ function createVideoRow(video) {
            </span>`
         : '';
 
+    // ADDED: Events for long press, ID for selection logic, Checkbox HTML
     return `
-        <div class="video-item">
+        <div class="video-item ${isSelected ? 'selected' : ''}" 
+             id="video-${video.id}"
+             oncontextmenu="return false;"
+             ontouchstart="handleRowTouchStart(event, '${video.id}')"
+             ontouchend="handleRowTouchEnd(event)"
+             ontouchmove="handleRowTouchMove(event)"
+             onmousedown="handleRowMouseDown(event, '${video.id}')"
+             onmouseup="handleRowMouseUp(event)"
+             onclick="handleRowClick(event, '${video.id}')"
+        >
+            
+            <div class="selection-checkbox">
+                <div class="checkbox-circle"></div>
+            </div>
+
             <div class="video-info">
                 <h4>${video.title}</h4>
                 <a href="${video.link}" target="_blank">Watch Video &#8599;</a>
@@ -477,6 +661,7 @@ async function refreshStats() {
 
 // Toggle Dropdown Visibility
 function toggleDropdown(id) {
+    if (isSelectionMode) return; // Disable in selection mode
     document.querySelectorAll('.dropdown-menu').forEach(menu => {
         if(menu.id !== `dropdown-${id}`) menu.classList.add('hidden');
     });
@@ -503,6 +688,8 @@ async function markAsRejected(id) {
 }
 
 const debouncedToggleStatus = debounce(async function(id, currentStatus) {
+    if (isSelectionMode) return; // Disable in selection mode
+
     let newStatus = "Approved";
     
     if (currentStatus === "Approved") {
@@ -581,7 +768,9 @@ function openEditVideoModal(id) {
 
     // 4. Show Modal
     // Hide the dropdown menu first
-    toggleDropdown(id); 
+    // toggleDropdown(id); // Dropdown logic might conflict, just hide all
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
+    
     toggleEditVideoModal(true);
 }
 

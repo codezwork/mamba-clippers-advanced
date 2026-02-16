@@ -458,6 +458,8 @@ body.selection-mode .dropdown-container {
 
 /* DELETE MODE FAB STYLE */
 .fab-delete-mode {
+    align-items: center;
+    display: flex;
     background: #ff4444 !important;
     color: #fff !important;
     border-color: #ff4444 !important;

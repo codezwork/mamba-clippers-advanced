@@ -59,35 +59,44 @@
         <nav class="navbar" style="position: sticky;">
             <div class="nav-container">
                 <div class="logo-area" style="display: flex; align-items: center; gap: 10px;">
-                    <div class="logo" onclick="goHome()" style="cursor: pointer; margin-right: 5px;">
-                        <span style="color: #ff4444;">&#8592;</span> <span id="current-user-name">USER</span>
-                    </div>
-                    
-                    <button id="refresh-btn" class="refresh-btn" onclick="refreshStats()">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M23 4v6h-6"></path>
-                            <path d="M1 20v-6h6"></path>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                        </svg>
-                        <span>REFRESH</span>
-                    </button>
-
-                    <div class="dropdown-container">
-                        <button id="sort-btn" class="refresh-btn" onclick="toggleSortMenu()">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="21" y1="10" x2="3" y2="10"></line>
-                                <line x1="21" y1="6" x2="3" y2="6"></line>
-                                <line x1="21" y1="14" x2="3" y2="14"></line>
-                                <line x1="21" y1="18" x2="3" y2="18"></line>
-                            </svg>
-                            <span>SORT</span>
-                        </button>
-                        <div id="sort-menu" class="dropdown-menu hidden" style="top: 35px; left: 0; right: auto; min-width: 120px;">
-                            <div class="dropdown-item" onclick="setSort('newest')">Newest First</div>
-                            <div class="dropdown-item" onclick="setSort('oldest')">Oldest First</div>
-                            <div class="dropdown-item" onclick="setSort('views')">Most Views</div>
-                            <div class="dropdown-item" onclick="setSort('name')">Name (A-Z)</div>
+                    <div id="nav-logo-group" style="display: flex; align-items: center; gap: 10px;">
+                        <div class="logo" onclick="goHome()" style="cursor: pointer; margin-right: 5px;">
+                            <span style="color: #ff4444;">&#8592;</span> <span id="current-user-name">USER</span>
                         </div>
+                        
+                        <button id="refresh-btn" class="refresh-btn" onclick="refreshStats()">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 4v6h-6"></path>
+                                <path d="M1 20v-6h6"></path>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            <span>REFRESH</span>
+                        </button>
+
+                        <div class="dropdown-container">
+                            <button id="sort-btn" class="refresh-btn" onclick="toggleSortMenu()">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="21" y1="10" x2="3" y2="10"></line>
+                                    <line x1="21" y1="6" x2="3" y2="6"></line>
+                                    <line x1="21" y1="14" x2="3" y2="14"></line>
+                                    <line x1="21" y1="18" x2="3" y2="18"></line>
+                                </svg>
+                                <span>SORT</span>
+                            </button>
+                            <div id="sort-menu" class="dropdown-menu hidden" style="top: 35px; left: 0; right: auto; min-width: 120px;">
+                                <div class="dropdown-item" onclick="setSort('newest')">Newest First</div>
+                                <div class="dropdown-item" onclick="setSort('oldest')">Oldest First</div>
+                                <div class="dropdown-item" onclick="setSort('views')">Most Views</div>
+                                <div class="dropdown-item" onclick="setSort('name')">Name (A-Z)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="selection-actions" class="hidden" style="display: flex; align-items: center;">
+                        <button class="cta-button" onclick="exitSelectionMode()" style="padding: 6px 15px; border-width: 1px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            CANCEL
+                        </button>
                     </div>
 
                 </div>
@@ -120,7 +129,7 @@
 
         <div class="container" style="padding-bottom: 100px;">
             <div id="profiles-container"></div>
-            <button class="cta-button fab-btn" onclick="toggleAddModal(true)">+ ADD VIDEO</button>
+            <button id="main-fab" class="cta-button fab-btn" onclick="handleFabClick()">+ ADD VIDEO</button>
         </div>
 
         <div class="bottom-nav">

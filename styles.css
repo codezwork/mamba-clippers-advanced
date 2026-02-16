@@ -233,18 +233,69 @@ body {
     transition: width 0.5s ease;
 }
 
-/* Video Items */
+/* ==========================================================================
+   VIDEO ITEMS (SELECTION MODE UPDATES)
+   ========================================================================== */
+
 .video-item {
     background: rgba(255,255,255,0.03);
     border-bottom: 1px solid #222;
     padding: 15px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: background-color 0.2s ease;
-    position: relative; /* Needed for dropdown positioning */
+    align-items: center; /* Needed for checkbox alignment */
+    transition: background-color 0.2s ease, transform 0.1s;
+    position: relative; 
+    user-select: none; /* Prevent text selection during hold */
 }
 .video-item:hover { background: rgba(255,255,255,0.05); }
+
+/* SELECTION MODE STYLES */
+.video-item.selected {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: rgba(255, 68, 68, 0.2);
+}
+
+/* Checkbox (Hidden by default) */
+.selection-checkbox {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0;
+}
+
+/* When Body is in Selection Mode, show checkbox */
+body.selection-mode .selection-checkbox {
+    width: 30px;
+    opacity: 1;
+    margin-right: 15px;
+}
+
+.checkbox-circle {
+    width: 20px; height: 20px;
+    border: 2px solid #666;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+/* Checked State */
+.video-item.selected .checkbox-circle {
+    background: #ff4444;
+    border-color: #ff4444;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.4);
+    position: relative;
+}
+
+/* Disable Interactions in Selection Mode */
+body.selection-mode .video-actions,
+body.selection-mode .video-info a,
+body.selection-mode .dropdown-container {
+    pointer-events: none;
+    opacity: 0.5;
+}
 
 .video-info { flex: 1; margin-right: 15px; }
 
@@ -401,8 +452,17 @@ body {
     border-radius: 5%;
     box-shadow: 0 5px 20px rgba(255, 68, 68, 0.3);
     z-index: 998;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .fab-btn:hover { transform: scale(1.05); }
+
+/* DELETE MODE FAB STYLE */
+.fab-delete-mode {
+    background: #ff4444 !important;
+    color: #fff !important;
+    border-color: #ff4444 !important;
+    box-shadow: 0 5px 25px rgba(255, 68, 68, 0.6) !important;
+}
 
 /* Bottom Nav */
 .bottom-nav {

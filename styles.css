@@ -609,3 +609,73 @@ select.mamba-input {
     .refresh-btn span { display: none; } /* Hide 'REFRESH' text on very small screens, keep icon */
     .refresh-btn { padding: 6px; }
 }
+
+/* ==========================================================================
+   SMM Panel Styles
+   ========================================================================== */
+.video-item {
+    flex-direction: column; /* Allows panel to drop below main content */
+    align-items: stretch;
+}
+
+.smm-panel {
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px dashed #333;
+    margin-top: 15px;
+    padding-top: 15px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.smm-input {
+    background: #0a0a0a;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.smm-input:focus {
+    border-color: #2ecc71; /* Green focus to differentiate from the red Mamba input */
+}
+
+.smm-select { width: 130px; }
+.smm-quantity { width: 100px; }
+
+.smm-send-btn {
+    padding: 8px 16px;
+    font-size: 12px;
+    border-color: #2ecc71;
+    color: #2ecc71;
+}
+
+.smm-send-btn:hover {
+    background: #2ecc71;
+    color: #121212;
+}
+
+.smm-send-btn:disabled, .btn-loading {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: #2ecc71;
+    color: #2ecc71;
+    opacity: 0.7;
+    cursor: wait;
+    transform: none;
+}
+
+.smm-log {
+    font-size: 11px;
+    color: #666;
+    margin-left: auto;
+    font-family: monospace;
+}
+
+@media (max-width: 480px) {
+    .smm-log { margin-left: 0; width: 100%; margin-top: 5px; }
+}

@@ -530,62 +530,79 @@ function createVideoRow(video) {
              onclick="handleRowClick(event, '${video.id}')"
         >
             
-            <div class="selection-checkbox">
-                <div class="checkbox-circle"></div>
-            </div>
-
-            <div class="video-info">
-                <h4>${video.title}</h4>
-                <a href="${video.link}" target="_blank">Watch Video &#8599;</a>
-                ${viewsDisplay}
-            </div>
-            <div class="video-actions">
-                <div class="status-badge ${statusClass}" onclick="debouncedToggleStatus('${video.id}', '${video.status}')">
-                    ${video.status}
+            <div style="display: flex; width: 100%; align-items: center;">
+                <div class="selection-checkbox">
+                    <div class="checkbox-circle"></div>
                 </div>
 
-                <button class="icon-btn copy-btn" onclick="copyLink('${video.link}')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M16 12.9V17.1C16 20.6 14.6 22 11.1 22H6.9C3.4 22 2 20.6 2 17.1V12.9C2 9.4 3.4 8 6.9 8H11.1C14.6 8 16 9.4 16 12.9Z" stroke="currentColor" stroke-width="1.5"/>
-                        <path d="M22 6.9V11.1C22 14.6 20.6 16 17.1 16H16V12.9C16 9.4 14.6 8 11.1 8H8V6.9C8 3.4 9.4 2 12.9 2H17.1C20.6 2 22 3.4 22 6.9Z" stroke="currentColor" stroke-width="1.5"/>
-                    </svg>
-                </button>
+                <div class="video-info">
+                    <h4>${video.title}</h4>
+                    <a href="${video.link}" target="_blank">Watch Video &#8599;</a>
+                    ${viewsDisplay}
+                </div>
+                
+                <div class="video-actions">
+                    <div class="status-badge ${statusClass}" onclick="debouncedToggleStatus('${video.id}', '${video.status}')">
+                        ${video.status}
+                    </div>
 
-                <div class="dropdown-container">
-                    <button class="icon-btn delete-btn" onclick="toggleDropdown('${video.id}')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M3 7H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                            <path d="M3 12H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                            <path d="M3 17H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <button class="icon-btn" onclick="toggleSmmPanel(event, '${video.id}')" style="color: #2ecc71; border-color: rgba(46, 204, 113, 0.3);" title="Boost Video">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                         </svg>
                     </button>
-                    
-                    <div id="dropdown-${video.id}" class="dropdown-menu hidden">
-                         <div class="dropdown-item item-edit" onclick="openEditVideoModal('${video.id}')">
-                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                             </svg>
-                             Edit Details
-                         </div>
-                         
-                         <div class="dropdown-item item-rejected" onclick="markAsRejected('${video.id}')">
-                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                <line x1="9" y1="9" x2="15" y2="15"></line>
-                             </svg>
-                             Rejected
-                         </div>
-                         <div class="dropdown-item item-delete" onclick="deleteVideo('${video.id}')">
-                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                             </svg>
-                             Delete
-                         </div>
-                    </div>
-                </div>
 
+                    <div class="dropdown-container">
+                        <button class="icon-btn delete-btn" onclick="toggleDropdown('${video.id}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 7H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M3 12H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M3 17H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                        
+                        <div id="dropdown-${video.id}" class="dropdown-menu hidden">
+                             <div class="dropdown-item item-edit" onclick="openEditVideoModal('${video.id}')">
+                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                 </svg>
+                                 Edit Details
+                             </div>
+                             
+                             <div class="dropdown-item item-rejected" onclick="markAsRejected('${video.id}')">
+                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                                 </svg>
+                                 Rejected
+                             </div>
+                             <div class="dropdown-item item-delete" onclick="deleteVideo('${video.id}')">
+                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                 </svg>
+                                 Delete
+                             </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="smm-panel-${video.id}" class="smm-panel hidden">
+                <select id="smm-service-${video.id}" class="smm-input smm-select">
+                    <option value="1224">TikTok Views (1224)</option>
+                    <option value="557">Insta Views (557)</option>
+                </select>
+                
+                <input type="number" id="smm-quantity-${video.id}" class="smm-input smm-quantity" placeholder="Qty (e.g. 100)">
+                
+                <button id="smm-send-btn-${video.id}" class="cta-button smm-send-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}')">SEND</button>
+                
+                <div class="smm-log" id="smm-log-${video.id}">
+                    Last: ${video.lastSmmOrder ? video.lastSmmOrder : 'Never'}
+                </div>
             </div>
         </div>
     `;

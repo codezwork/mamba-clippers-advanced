@@ -72,3 +72,22 @@ async function submitSmmOrder(e, videoId, videoLink) {
         btn.classList.remove('btn-loading');
     }
 }
+
+// Syncs the Service dropdown so users can't pick Panel One with a Raja Service ID
+function syncSmmDropdowns(videoId) {
+    const provider = document.getElementById(`smm-provider-${videoId}`).value;
+    const serviceSelect = document.getElementById(`smm-service-${videoId}`);
+    
+    const rajaGroup = serviceSelect.querySelector('optgroup[label="SMM Raja Services"]');
+    const panelOneGroup = serviceSelect.querySelector('optgroup[label="SMM Panel One Services"]');
+    
+    if (provider === 'smmRaja') {
+        rajaGroup.style.display = 'block';
+        panelOneGroup.style.display = 'none';
+        serviceSelect.value = "1224"; // Reset to Raja default (Views)
+    } else {
+        rajaGroup.style.display = 'none';
+        panelOneGroup.style.display = 'block';
+        serviceSelect.value = "8429"; // Reset to Panel One default (Views)
+    }
+}

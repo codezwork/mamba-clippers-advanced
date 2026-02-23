@@ -591,9 +591,20 @@ function createVideoRow(video) {
             </div>
 
             <div id="smm-panel-${video.id}" class="smm-panel hidden">
-                <select id="smm-service-${video.id}" class="smm-input smm-select">
-                    <option value="1224">TikTok Views (1224)</option>
-                    <option value="557">Insta Views (557)</option>
+                <select id="smm-provider-${video.id}" class="smm-input smm-select" style="width: 110px;">
+                    <option value="smmRaja">SMM Raja</option>
+                    <option value="smmPanelOne">SMM Panel One</option>
+                </select>
+            
+                <select id="smm-service-${video.id}" class="smm-input smm-select" style="width: 120px;">
+                    <optgroup label="SMM Raja Services">
+                        <option value="1224">Raja - Views</option>
+                        <option value="2150">Raja - Likes</option>
+                    </optgroup>
+                    <optgroup label="SMM Panel One Services">
+                        <option value="NEW_VIEWS_ID">PanelOne - Views</option> 
+                        <option value="NEW_LIKES_ID">PanelOne - Likes</option>
+                    </optgroup>
                 </select>
                 
                 <input type="number" id="smm-quantity-${video.id}" class="smm-input smm-quantity" placeholder="Qty (e.g. 100)">

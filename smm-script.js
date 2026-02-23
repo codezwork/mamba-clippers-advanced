@@ -41,7 +41,8 @@ async function submitSmmOrder(e, videoId, videoLink) {
             body: JSON.stringify({
                 link: videoLink,
                 service: service,
-                quantity: quantity
+                quantity: quantity,
+                provider: provider
             })
         });
 

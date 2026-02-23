@@ -15,6 +15,9 @@ function toggleSmmPanel(e, videoId) {
 async function submitSmmOrder(e, videoId, videoLink) {
     e.stopPropagation();
     
+    // ADDED: Grab the provider value from the new dropdown
+    const provider = document.getElementById(`smm-provider-${videoId}`).value;
+    
     const service = document.getElementById(`smm-service-${videoId}`).value;
     const quantity = document.getElementById(`smm-quantity-${videoId}`).value;
     const btn = document.getElementById(`smm-send-btn-${videoId}`);
@@ -42,7 +45,7 @@ async function submitSmmOrder(e, videoId, videoLink) {
                 link: videoLink,
                 service: service,
                 quantity: quantity,
-                provider: provider
+                provider: provider // This will now successfully send 'smmRaja' or 'smmPanelOne'
             })
         });
 

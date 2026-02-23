@@ -591,7 +591,7 @@ function createVideoRow(video) {
             </div>
 
             <div id="smm-panel-${video.id}" class="smm-panel hidden">
-                <select id="smm-provider-${video.id}" class="smm-input smm-select" style="width: 110px;">
+                <select id="smm-provider-${video.id}" class="smm-input smm-select" style="width: 110px;" onchange="syncSmmDropdowns('${video.id}')">
                     <option value="smmRaja">SMM Raja</option>
                     <option value="smmPanelOne">SMM Panel One</option>
                 </select>

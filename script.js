@@ -598,12 +598,12 @@ function createVideoRow(video) {
             
                 <select id="smm-service-${video.id}" class="smm-input smm-select" style="width: 120px;">
                     <optgroup label="SMM Raja Services">
-                        <option value="1224">Raja - Views</option>
-                        <option value="2150">Raja - Likes</option>
+                        <option value="1224">R - ꚠ V</option>
+                        <option value="2150">R - ꚠ L</option>
                     </optgroup>
                     <optgroup label="SMM Panel One Services">
-                        <option value="NEW_VIEWS_ID">PanelOne - Views</option> 
-                        <option value="NEW_LIKES_ID">PanelOne - Likes</option>
+                        <option value="8429">PO - ꚠ V</option> 
+                        <option value="12981">PO - ꚠ Likes</option>
                     </optgroup>
                 </select>
                 

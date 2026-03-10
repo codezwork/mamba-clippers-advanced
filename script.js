@@ -71,9 +71,8 @@ async function handleMasterLogin() {
     const errorText = document.getElementById('login-error');
     const btn = document.querySelector('#login-view button');
 
-    // NEW: Restrict access to only the new email
-    if (email.toLowerCase() !== 'elitemambas@seven.brothers') {
-        errorText.innerText = "Access Denied: Please use your V2 credentials.";
+    if (!email || !password) {
+        errorText.innerText = "Please enter credentials.";
         errorText.style.display = 'block';
         return;
     }

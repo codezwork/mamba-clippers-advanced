@@ -1,10 +1,10 @@
 {
-  "name": "Mamba Clippers - Progress Tracker",
-  "short_name": "MambaClips",
+  "name": "Elite Mamba Clippers",
+  "short_name": "Elite Mamba",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#121212",
-  "theme_color": "#ff4444",
+  "theme_color": "#2ecc71", 
   "icons": [
     {
       "src": "icon-192.png",

@@ -10,58 +10,210 @@
     <meta name="theme-color" content="#ff4444">
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+    <section id="splash-view" class="app-view active" style="position: fixed; top:0; left:0; width:100%; height:100vh; z-index: 20000; background: #121212; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.8s ease-out;">
+        
+        <div class="logo-wrapper">
+            <img src="icon-512.png" alt="Mamba Beta Logo" class="logo-image">
+            <div class="glass-reflection"></div>
+        </div>
+        
+    </section>
+
+    <section id="login-view" class="app-view active" style="position: fixed; top:0; left:0; width:100%; height:100vh; z-index: 9999; background: #121212; display: flex; align-items: center; justify-content: center;">
+        <div class="modal-content testimonial-card" style="transform: none; max-width: 350px; text-align: center;">
+            <h1 style="margin-bottom: 5px;">MAMBA <span class="highlight">ACCESS</span></h1>
+            <p style="color: #666; font-size: 12px; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px;">Authorized Personnel Only</p>
+            
+            <input type="email" id="login-email" placeholder="Master Email" class="mamba-input" style="text-align: center;">
+            <input type="password" id="login-password" placeholder="Master Password" class="mamba-input" style="text-align: center; margin-bottom: 25px;">
+            
+            <button class="cta-button" onclick="handleMasterLogin()" style="width: 100%;">ENTER SYSTEM</button>
+            <p id="login-error" style="color: #ff4444; font-size: 12px; margin-top: 15px; display: none;"></p>
+        </div>
+    </section>
 
     <section id="home-view" class="app-view active">
         <div class="container">
             <div class="hero-content" style="padding-top: 60px; text-align: center;">
                 <h1>MAMBA <span class="highlight">CLIPPERS</span></h1>
-                <p style="color: #aaa; margin-bottom: 40px;">Select your assigned companion</p>
+                
+                <div id="legacy-revenue-container" style="margin-bottom: 40px; cursor: pointer;" onclick="openLegacyModal()">
+                    <p style="color: #666; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;">Total Generated Revenue</p>
+                    <h2 id="legacy-revenue-amount" style="font-size: 28px; color: #2ecc71; font-family: monospace;">₹0.00</h2>
+                </div>
             </div>
             
             <div class="services-grid user-select-grid">
-                <div class="service-card user-card" onclick="openDashboard('Dikshansh')">
-                    <div class="service-icon"><div class="dot-icon"></div></div>
-                    <h3>DIKSHANSH</h3>
-                    <p>Mamba Mentality Perpetuator</p>
+                <div class="service-card user-card">
+                    <div class="card-header">
+                        <h3>DIKSHANSH</h3>
+                        <p>Mamba Mentality Perpetuator</p>
+                    </div>
+                    <div class="platform-actions">
+                        <button class="platform-btn tiktok-btn" onclick="openProfileSelection('Dikshansh', 'TikTok')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                            TikTok
+                        </button>
+                        <button class="platform-btn insta-btn" onclick="openProfileSelection('Dikshansh', 'Instagram')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                            Instagram
+                        </button>
+                    </div>
                 </div>
 
-                <div class="service-card user-card" onclick="openDashboard('Aditya')">
-                    <div class="service-icon"><div class="dot-icon"></div></div>
-                    <h3>ADITYA</h3>
-                    <p>Future Civil Services</p>
+                <div class="service-card user-card">
+                    <div class="card-header">
+                        <h3>ADITYA</h3>
+                        <p>Future Civil Services</p>
+                    </div>
+                    <div class="platform-actions">
+                        <button class="platform-btn tiktok-btn" onclick="openProfileSelection('Aditya', 'TikTok')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                            TikTok
+                        </button>
+                        <button class="platform-btn insta-btn" onclick="openProfileSelection('Aditya', 'Instagram')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                            Instagram
+                        </button>
+                    </div>
                 </div>
 
-                <div class="service-card user-card" onclick="openDashboard('Anurag')">
-                    <div class="service-icon"><div class="dot-icon"></div></div>
-                    <h3>ANURAG</h3>
-                    <p>Gangstar ★ - Too Sexy Phisique</p>
+                <div class="service-card user-card">
+                    <div class="card-header">
+                        <h3>BAPYA</h3>
+                        <p>Gangstar ★ - Too Sexy Phisique</p>
+                    </div>
+                    <div class="platform-actions">
+                        <button class="platform-btn tiktok-btn" onclick="openProfileSelection('Anurag', 'TikTok')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                            TikTok
+                        </button>
+                        <button class="platform-btn insta-btn" onclick="openProfileSelection('Anurag', 'Instagram')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                            Instagram
+                        </button>
+                    </div>
+                </div>
+
+                <div class="service-card user-card">
+                    <div class="card-header">
+                        <h3>GANYA</h3>
+                        <p>Gangleader - Upper 1 Botter</p>
+                    </div>
+                    <div class="platform-actions">
+                        <button class="platform-btn tiktok-btn" onclick="openProfileSelection('Ganya', 'TikTok')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                            TikTok
+                        </button>
+                        <button class="platform-btn insta-btn" onclick="openProfileSelection('Ganya', 'Instagram')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                            Instagram
+                        </button>
+                    </div>
+                </div>
+
+                <div class="service-card user-card">
+                    <div class="card-header">
+                        <h3>MANGALDEEP</h3>
+                        <p>Mamba Club Secret Russian Agent</p>
+                    </div>
+                    <div class="platform-actions">
+                        <button class="platform-btn tiktok-btn" onclick="openProfileSelection('Mangaldeep', 'TikTok')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                            TikTok
+                        </button>
+                        <button class="platform-btn insta-btn" onclick="openProfileSelection('Mangaldeep', 'Instagram')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                            Instagram
+                        </button>
+                    </div>
+                </div>
+
+                <div class="service-card user-card">
+                    <div class="card-header">
+                        <h3>MADHUR</h3>
+                        <p>Maddest Member of the Club</p>
+                    </div>
+                    <div class="platform-actions">
+                        <button class="platform-btn tiktok-btn" onclick="openProfileSelection('Madhur', 'TikTok')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                            TikTok
+                        </button>
+                        <button class="platform-btn insta-btn" onclick="openProfileSelection('Madhur', 'Instagram')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                            Instagram
+                        </button>
+                    </div>
                 </div>
             </div>
             
             <div id="install-container-home" class="hidden" style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
                 <button class="cta-button pwa-install-btn" onclick="installPWA()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-right: 10px; vertical-align: middle;">
-                        <path d="M12 16L12 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M9 13L12 16L15 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M17 16V16.8C17 17.9201 17 18.4802 16.782 18.908C16.5903 19.2843 16.2843 19.5903 15.908 19.782C15.4802 20 14.9201 20 13.8 20H10.2C9.07989 20 8.51984 20 8.09202 19.782C7.71569 19.5903 7.40973 19.2843 7.21799 18.908C7 18.4802 7 17.9201 7 16.8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M7.00018 4H17.0002C18.8858 4 19.8286 4 19.8286 4 20.4144 4.58579C21.0002 5.17157 21.0002 6.11438 21.0002 8V16C21.0002 17.8856 21.0002 18.8284 20.4144 19.4142C19.8286 20 18.8858 20 17.0002 20H7.00018C5.11456 20 4.17175 20 3.58597 19.4142C3.00018 18.8284 3.00018 17.8856 3.00018 16V8C3.00018 6.11438 3.00018 5.17157 3.58597 4.58579C4.17175 4 5.11456 4 7.00018 4Z" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 10px; vertical-align: middle;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
                     INSTALL APP
+                </button>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 40px;">
+                <button onclick="openLegacyModal()" style="background: none; border: none; color: #333; font-size: 10px; cursor: pointer;">
+                    UPDATE LEGACY DATA
                 </button>
             </div>
         </div>
     </section>
 
-    <section id="dashboard-view" class="app-view hidden">
+    <section id="profile-select-view" class="app-view hidden">
         <nav class="navbar" style="position: sticky;">
             <div class="nav-container">
                 <div class="logo-area" style="display: flex; align-items: center; gap: 10px;">
+                    <div class="logo" onclick="goHome()" style="cursor: pointer; margin-right: 5px;">
+                        <span style="color: #ff4444;">&#8592;</span> <span id="ps-header-user">USER</span>
+                    </div>
+                </div>
+                <div id="ps-platform-icon"
+                    onclick="togglePlatform()" 
+                    style="cursor: pointer; transition: transform 0.2s;" 
+                    onmouseover="this.style.transform='scale(1.1)'" 
+                    onmouseout="this.style.transform='scale(1)'" 
+                    title="Switch Platform">
+                </div>
+            </div>
+        </nav>
+        
+        <div class="container" style="padding-top: 20px; padding-bottom: 10px;">
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid #333; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #aaa; font-size: 12px; text-transform: uppercase;">Platform Total</span>
+                <span id="platform-total-revenue" style="color: #2ecc71; font-weight: 700; font-size: 18px;">$0.00</span>
+            </div>
+        </div>
+        
+        <div class="container" style="padding-top: 10px;">
+            <h2 style="margin-bottom: 20px; font-weight: 300;">Select <span class="highlight">Profile</span></h2>
+            <div id="profile-list-grid" class="services-grid">
+                </div>
+            
+            <button class="cta-button" onclick="openProfileSettings()" style="width: 100%; margin-top: 30px; border-style: dashed;">
+                + MANAGE PROFILES
+            </button>
+        </div>
+    </section>
+
+    <section id="dashboard-view" class="app-view hidden">
+        <nav class="navbar" style="position: sticky; top: 0;">
+            <div class="nav-container">
+                <div class="logo-area" style="display: flex; align-items: center; gap: 10px;">
                     <div id="nav-logo-group" style="display: flex; align-items: center; gap: 10px;">
-                        <div class="logo" onclick="goHome()" style="cursor: pointer; margin-right: 5px;">
-                            <span style="color: #ff4444;">&#8592;</span> <span id="current-user-name">USER</span>
+                        <div class="logo" onclick="goToProfileSelect()" style="cursor: pointer; margin-right: 5px;">
+                            <span style="color: #ff4444;">&#8592;</span> <span id="current-profile-name">PROFILE</span>
                         </div>
                         
                         <button id="refresh-btn" class="refresh-btn" onclick="refreshStats()">
@@ -83,7 +235,7 @@
                                 </svg>
                                 <span>SORT</span>
                             </button>
-                            <div id="sort-menu" class="dropdown-menu hidden" style="top: 35px; left: 0; right: auto; min-width: 120px;">
+                            <div id="sort-menu" class="dropdown-menu hidden" style="top: 35px; right: 0; left: auto; min-width: 120px;">
                                 <div class="dropdown-item" onclick="setSort('newest')">Newest First</div>
                                 <div class="dropdown-item" onclick="setSort('oldest')">Oldest First</div>
                                 <div class="dropdown-item" onclick="setSort('views')">Most Views</div>
@@ -102,50 +254,55 @@
                 </div>
 
                 <div class="nav-dots">
-                    <div class="dot" id="passwords-btn" onclick="openPasswordsModal()" 
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" 
-                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M17 7C17.7956 7 18.5587 7.31607 19.1213 7.87868C19.6839 8.44129 20 9.20435 20 10V14C20 15.3261 19.4732 16.5979 18.5355 17.5355C17.5979 18.4732 16.3261 19 15 19H9C7.67392 19 6.40215 18.4732 5.46447 17.5355C4.52678 16.5979 4 15.3261 4 14V10C4 8.67392 4.52678 7.40215 5.46447 6.46447C6.40215 5.52678 7.67392 5 9 5H15C15.7956 5 16.5587 5.31607 17.1213 5.87868C17.6839 6.44129 18 7.20435 18 8V8" 
-                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 12V12.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-
-                    <div class="dot" id="settings-btn" onclick="openProfileSettings()" 
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" 
-                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M19.6224 10.3954L18.5247 7.7448L20 6L18 4L16.2647 5.48295L13.5578 4.36974L12.9353 2H10.981L10.3491 4.40113L7.70441 5.51596L6 4L4 6L5.45337 7.78885L4.3725 10.4463L2 11V13L4.40111 13.6555L5.51575 16.2997L4 18L6 20L7.79116 18.5403L10.397 19.6123L11 22H13L13.6045 19.6132L16.2551 18.5155C16.6969 18.8313 18 20 18 20L20 18L18.5159 16.2494L19.6139 13.598L21.9999 12.9772L22 11L19.6224 10.3954Z" 
-                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
                     <div class="dot" id="loading-indicator" style="background: transparent;"></div>
                 </div>
             </div>
         </nav>
 
+        <div class="sticky-stats-header">
+            <div class="container">
+                <div class="profile-analytics-header">
+                    <div class="stat-box">
+                        <span class="stat-label">Total Revenue</span>
+                        <span class="stat-value revenue-text" id="stat-revenue">$0.00</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Total Clips</span>
+                        <span class="stat-value" id="stat-total-clips">0</span>
+                    </div>
+                </div>
+                
+                <div class="status-progress-track">
+                    <div id="prog-approved" class="status-bar-seg seg-approved" style="width: 0%"></div>
+                    <div id="prog-rejected" class="status-bar-seg seg-rejected" style="width: 0%"></div>
+                    <div id="prog-pending" class="status-bar-seg seg-pending" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
         <div class="container" style="padding-bottom: 100px;">
             <div id="profiles-container"></div>
             <button id="main-fab" class="cta-button fab-btn" onclick="handleFabClick()">+ ADD VIDEO</button>
         </div>
+    </section>
 
-        <div class="bottom-nav">
-            <div class="nav-item active" onclick="switchPlatform('TikTok', this)">
-                TIKTOK
-            </div>
-            <div class="nav-item" onclick="switchPlatform('Instagram', this)">
-                INSTAGRAM
+    <div id="legacy-modal" class="modal-overlay hidden">
+        <div class="modal-content testimonial-card">
+            <h3>UPDATE REVENUE</h3>
+            <p style="color: #aaa; font-size: 12px; margin-bottom: 15px;">Enter the total revenue generated so far.</p>
+            <input type="number" id="legacy-input" placeholder="Amount ($)" class="mamba-input">
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="cta-button" onclick="updateLegacyRevenue()">UPDATE</button>
+                <button class="cta-button" style="border-color: #444; color: #aaa;" onclick="toggleLegacyModal(false)">CANCEL</button>
             </div>
         </div>
-    </section>
+    </div>
 
     <div id="add-modal" class="modal-overlay hidden">
         <div class="modal-content testimonial-card">
             <h3>ADD NEW VIDEO</h3>
-            <select id="new-profile-select" class="mamba-input"></select>
+            <p id="add-modal-subtitle" style="color: #666; font-size: 12px; margin-bottom: 10px;"></p>
             <input type="text" id="new-title" placeholder="Video Title" class="mamba-input">
             <input type="text" id="new-link" placeholder="Video Link" class="mamba-input">
             
@@ -159,7 +316,6 @@
     <div id="edit-video-modal" class="modal-overlay hidden">
         <div class="modal-content testimonial-card">
             <h3>EDIT VIDEO</h3>
-            <select id="edit-profile-select" class="mamba-input"></select>
             <input type="text" id="edit-title" placeholder="Video Title" class="mamba-input">
             <input type="text" id="edit-link" placeholder="Video Link" class="mamba-input">
             
@@ -172,23 +328,33 @@
 
     <div id="profile-settings-modal" class="modal-overlay hidden">
         <div class="modal-content testimonial-card">
-            <h3>Edit Profile Names</h3>
-            <p style="color: #aaa; font-size: 12px; margin-bottom: 20px;" id="profile-settings-info"></p>
             
-            <input type="text" id="profile-name-1" placeholder="Profile 1 Name" class="mamba-input">
-            <input type="text" id="profile-name-2" placeholder="Profile 2 Name" class="mamba-input">
-            <input type="text" id="profile-name-3" placeholder="Profile 3 Name" class="mamba-input">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; font-size: 22px; letter-spacing: 1px;">SETTINGS</h2>
+                
+                <button class="icon-btn" onclick="openPasswordsModal(); toggleProfileSettingsModal(false);" style="color: #ff4444; border-color: rgba(255, 68, 68, 0.3); width: 36px; height: 36px;" title="Passwords Log">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <h4 style="color: #aaa; margin-bottom: 15px; font-weight: 500;">Edit Profile Names</h4>
+            
+            <div id="dynamic-profile-inputs" style="max-height: 250px; overflow-y: auto; padding-right: 5px; margin-bottom: 10px;"></div>
+            
+            <button class="cta-button" onclick="addNewProfileField()" style="width: 100%; border-style: dashed; padding: 8px; font-size: 12px;">
+                + ADD ANOTHER PROFILE
+            </button>
             
             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="cta-button" onclick="saveProfileNames()">SAVE CHANGES</button>
+                <button class="cta-button" onclick="saveProfileNames()">SAVE</button>
                 <button class="cta-button" style="border-color: #444; color: #aaa;" onclick="toggleProfileSettingsModal(false)">CANCEL</button>
             </div>
             
             <div id="install-container-settings" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; width: 100%;">
                 <button class="cta-button pwa-install-btn" onclick="installPWA()" style="width: 100%; display: flex; align-items: center; justify-content: center; border-style: dashed;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-right: 10px;">
-                        <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
                     INSTALL TO HOMESCREEN
                 </button>
             </div>
@@ -208,7 +374,6 @@
     <script src="script.js"></script>
     <script src="smm-script.js"></script>
     <script>
-    // Service worker registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('service-worker.js')

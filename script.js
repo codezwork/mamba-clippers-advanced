@@ -1,43 +1,128 @@
-//
 // --- CONFIGURATION ---
-// PASTE YOUR FIREBASE CONFIG HERE FROM CONSOLE
 const firebaseConfig = {
-  apiKey: "AIzaSyDqI6yHiHJ7Ao257KmVaTSOPJ7C3hd9V7U",
-  authDomain: "mambaclippers.firebaseapp.com",
-  projectId: "mambaclippers",
-  storageBucket: "mambaclippers.firebasestorage.app",
-  messagingSenderId: "400915321062",
-  appId: "1:400915321062:web:8a8ee616725d40ea47eb27"
+    apiKey: "AIzaSyDqI6yHiHJ7Ao257KmVaTSOPJ7C3hd9V7U",
+    authDomain: "mambaclippers.firebaseapp.com",
+    projectId: "mambaclippers",
+    storageBucket: "mambaclippers.firebasestorage.app",
+    messagingSenderId: "400915321062",
+    appId: "1:400915321062:web:8a8ee616725d40ea47eb27"
 };
 
-// --- BACKEND URL ---
-// REPLACE THIS WITH YOUR ACTUAL RENDER URL AFTER DEPLOYING
 const BACKEND_URL = "https://mamba-clippers-backend-views-scrapper.onrender.com/refresh-stats";
 
-// Initialize Firebase
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
+const auth = firebase.auth(); 
 
-// --- STATE MANAGEMENT ---
+auth.onAuthStateChanged((user) => {
+    const splash = document.getElementById('splash-view');
+    const loginView = document.getElementById('login-view');
+    const homeView = document.getElementById('home-view');
+
+    const loginTime = localStorage.getItem('mambaLoginTime');
+    const oneDayMs = 24 * 60 * 60 * 1000; 
+    const now = Date.now();
+
+    if (user && (!loginTime || (now - loginTime > oneDayMs))) {
+        console.log("Session expired. Forcing logout.");
+        auth.signOut(); 
+        return;
+    }
+
+    if (user) {
+        loginView.classList.add('hidden');
+        loginView.classList.remove('active');
+        
+        if (document.getElementById('dashboard-view').classList.contains('hidden') && 
+            document.getElementById('profile-select-view').classList.contains('hidden')) {
+            homeView.classList.remove('hidden');
+        }
+        
+        loadGlobalSettings(); 
+        // PREMIUM FADE OUT: Let the animation play a bit, then fade out smoothly
+        setTimeout(() => { 
+            splash.style.opacity = '0'; // Trigger CSS fade
+            setTimeout(() => { 
+                splash.classList.add('hidden'); // Remove from DOM after fade completes
+                splash.style.opacity = '1'; // Reset state
+            }, 800); 
+        }, 1200);
+
+    } else {
+        hideAllViews();
+        loginView.classList.remove('hidden');
+        loginView.classList.add('active');
+        splash.classList.add('hidden');
+        localStorage.removeItem('mambaLoginTime'); 
+    }
+});
+
+function hideAllViews() {
+    document.getElementById('home-view').classList.add('hidden');
+    document.getElementById('profile-select-view').classList.add('hidden');
+    document.getElementById('dashboard-view').classList.add('hidden');
+}
+
+async function handleMasterLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const errorText = document.getElementById('login-error');
+    const btn = document.querySelector('#login-view button');
+
+    if (!email || !password) {
+        errorText.innerText = "Please enter credentials.";
+        errorText.style.display = 'block';
+        return;
+    }
+
+    const originalText = btn.innerText;
+    btn.innerText = "VERIFYING...";
+    btn.disabled = true;
+    errorText.style.display = 'none';
+
+    localStorage.setItem('mambaLoginTime', Date.now()); 
+
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+        console.error("Login Failed", error);
+        localStorage.removeItem('mambaLoginTime'); 
+        btn.innerText = originalText;
+        btn.disabled = false;
+        errorText.innerText = "Access Denied: Invalid Credentials";
+        errorText.style.display = 'block';
+    }
+}
+
+function handleLogout() {
+    if(confirm("Disconnect from Mamba System?")) {
+        auth.signOut().then(() => {
+            showToast("Logged out successfully", "info");
+        });
+    }
+}
+
 let appData = [];
 let currentUser = "";
 let currentPlatform = "TikTok"; 
+let currentProfileKey = null; 
+let currentProfileName = "";
+
 let isLoading = false;
 let profileConfig = {};
 let passwordsData = {};
 let unsubscribeVideos = null;
 let currentEditingId = null;
 let currentSortOrder = "newest"; 
+let legacyRevenue = 0;
 
-// --- SELECTION MODE STATE (NEW) ---
 let isSelectionMode = false;
 let selectedVideoIds = new Set();
 let longPressTimer = null;
-const LONG_PRESS_DURATION = 500; // ms
+const LONG_PRESS_DURATION = 500;
 
-// --- DEBOUNCE UTILITY ---
 let debounceTimer;
 function debounce(func, delay) {
     return function(...args) {
@@ -46,7 +131,6 @@ function debounce(func, delay) {
     };
 }
 
-// --- TOAST NOTIFICATION SYSTEM ---
 function showToast(message, type = 'info') {
     const existingToast = document.querySelector('.toast-notification');
     if (existingToast) existingToast.remove();
@@ -58,15 +142,10 @@ function showToast(message, type = 'info') {
         <div class="toast-message">${message}</div>
         <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
     `;
-    
     document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentElement) toast.remove();
-    }, 3000);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 3000);
 }
 
-// --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     const toastStyles = document.createElement('style');
     toastStyles.textContent = `
@@ -87,33 +166,168 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(toastStyles);
 
-    // Global listener to close dropdowns when clicking outside
     document.addEventListener('click', function(event) {
         if (!event.target.closest('.dropdown-container')) {
-            document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                menu.classList.add('hidden');
-            });
+            document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
         }
     });
 });
 
-// --- NAVIGATION FUNCTIONS ---
-function openDashboard(user) {
-    currentUser = user;
-    document.getElementById('current-user-name').innerText = user.toUpperCase();
+async function loadGlobalSettings() {
+    try {
+        const settingsDoc = await db.collection('settings').doc('global').get();
+        if (settingsDoc.exists) {
+            const data = settingsDoc.data();
+            profileConfig = data.profileConfig || {};
+            legacyRevenue = data.totalLegacyRevenue || 0;
+            
+            document.getElementById('legacy-revenue-amount').innerText = 
+              `₹${legacyRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        const passwordsSnapshot = await db.collection('passwords log').get();
+        passwordsData = {};
+        passwordsSnapshot.forEach(doc => { passwordsData[doc.id] = doc.data(); });
+        return true;
+    } catch (error) {
+        console.error("Error loading settings:", error);
+        return false;
+    }
+}
+
+function toggleLegacyModal(show) {
+    const modal = document.getElementById('legacy-modal');
+    if (show) {
+        document.getElementById('legacy-input').value = legacyRevenue;
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+function openLegacyModal() {
+    toggleLegacyModal(true);
+}
+
+async function updateLegacyRevenue() {
+    const val = parseFloat(document.getElementById('legacy-input').value);
+    if (isNaN(val)) {
+        showToast('Invalid Amount', 'error');
+        return;
+    }
     
+    toggleLegacyModal(false);
+    showLoading(true);
+    
+    try {
+        await db.collection('settings').doc('global').update({
+            totalLegacyRevenue: val
+        });
+        legacyRevenue = val;
+        document.getElementById('legacy-revenue-amount').innerText = 
+          `₹${legacyRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        showToast('Revenue Updated', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Update Failed', 'error');
+    }
+    showLoading(false);
+}
+
+async function openProfileSelection(user, platform) {
+    showLoading(true);
+    if (Object.keys(profileConfig).length === 0) {
+        await loadGlobalSettings();
+    }
+
+    currentUser = user;
+    currentPlatform = platform;
+
     document.getElementById('home-view').classList.add('hidden');
+    document.getElementById('dashboard-view').classList.add('hidden');
+    
+    const psView = document.getElementById('profile-select-view');
+    psView.classList.remove('hidden');
+    psView.classList.add('active');
+
+    document.getElementById('ps-header-user').innerText = user.toUpperCase();
+    document.getElementById('ps-platform-icon').innerHTML = getPlatformLogo(platform);
+
+    renderProfileSelectionList();
+    fetchPlatformStats(); 
+    showLoading(false);
+}
+
+function togglePlatform() {
+    if (!currentUser) return;
+    
+    // Swap the platform
+    const newPlatform = currentPlatform === 'TikTok' ? 'Instagram' : 'TikTok';
+    
+    // Add a quick little visual feedback animation
+    const iconDiv = document.getElementById('ps-platform-icon');
+    iconDiv.style.transform = 'scale(0.8)';
+    
+    setTimeout(() => {
+        iconDiv.style.transform = 'scale(1)';
+        // Re-run the selection logic with the new platform
+        openProfileSelection(currentUser, newPlatform);
+    }, 150);
+}
+
+async function fetchPlatformStats() {
+    document.getElementById('platform-total-revenue').innerText = "Loading...";
+    try {
+        const snapshot = await db.collection('videos')
+            .where('person', '==', currentUser)
+            .where('platform', '==', currentPlatform)
+            .get();
+        
+        let totalViews = 0;
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            totalViews += (data.views ? parseInt(data.views) : 0);
+        });
+        
+        const revenue = (totalViews / 1000) * 2.25;
+        document.getElementById('platform-total-revenue').innerText = 
+            `$${revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            
+    } catch (e) {
+        console.error(e);
+        document.getElementById('platform-total-revenue').innerText = "---";
+    }
+}
+
+function openProfileFeed(profileKey, profileName) {
+    currentProfileKey = profileKey;
+    currentProfileName = profileName;
+
+    document.getElementById('profile-select-view').classList.add('hidden');
     document.getElementById('dashboard-view').classList.remove('hidden');
     document.getElementById('dashboard-view').classList.add('active');
 
-    fetchData(); 
+    document.getElementById('current-profile-name').innerText = profileName.toUpperCase();
+    
+    fetchVideosForProfile();
 }
 
 function goHome() {
-    exitSelectionMode(); // Ensure we exit mode when leaving
+    exitSelectionMode();
+    document.getElementById('profile-select-view').classList.add('hidden');
     document.getElementById('dashboard-view').classList.add('hidden');
     document.getElementById('home-view').classList.remove('hidden');
+    
     appData = [];
+    if (unsubscribeVideos) {
+        unsubscribeVideos();
+        unsubscribeVideos = null;
+    }
+}
+
+function goToProfileSelect() {
+    exitSelectionMode();
+    document.getElementById('dashboard-view').classList.add('hidden');
+    openProfileSelection(currentUser, currentPlatform);
     
     if (unsubscribeVideos) {
         unsubscribeVideos();
@@ -121,380 +335,138 @@ function goHome() {
     }
 }
 
-function switchPlatform(platform, element) {
-    exitSelectionMode(); // Reset selection on tab switch
-    currentPlatform = platform;
-    document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
-    element.classList.add('active');
-    renderDashboard();
-}
-
-// --- DATA HANDLING (FIRESTORE) ---
-async function fetchData() {
-  showLoading(true);
-  try {
-    const settingsDoc = await db.collection('settings').doc('global').get();
-    if (settingsDoc.exists) {
-        profileConfig = settingsDoc.data().profileConfig || {};
+function getProfileData() {
+    let config = {};
+    if (profileConfig[currentUser] && profileConfig[currentUser][currentPlatform]) {
+        config = profileConfig[currentUser][currentPlatform];
     }
-
-    const passwordsSnapshot = await db.collection('passwords log').get();
-    passwordsData = {};
-    passwordsSnapshot.forEach(doc => {
-        passwordsData[doc.id] = doc.data();
+    const profileKeys = Object.keys(config).filter(k => k.startsWith('profile'));
+    
+    const sortedKeys = profileKeys.sort((a, b) => {
+        const numA = parseInt(a.replace('profile', '')) || 0;
+        const numB = parseInt(b.replace('profile', '')) || 0;
+        return numA - numB;
     });
 
-    if (unsubscribeVideos) unsubscribeVideos();
-
-    unsubscribeVideos = db.collection('videos')
-        .where('person', '==', currentUser)
-        .onSnapshot((snapshot) => {
-            appData = [];
-            snapshot.forEach((doc) => {
-                appData.push({ ...doc.data(), id: doc.id });
-            });
-            renderDashboard();
-            showLoading(false);
-        }, (error) => {
-            console.error("Firestore Error:", error);
-            showToast('Error syncing data.', 'error');
-            showLoading(false);
-        });
-
-  } catch (error) {
-    showToast('Error loading data.', 'error');
-    console.error('Fetch error:', error);
-    showLoading(false);
-  }
-}
-
-function getCurrentProfileNames() {
-    if (profileConfig[currentUser] && profileConfig[currentUser][currentPlatform]) {
-        const config = profileConfig[currentUser][currentPlatform];
+    if (sortedKeys.length === 0) {
         return [
-            config.profile1 || "Profile 1",
-            config.profile2 || "Profile 2", 
-            config.profile3 || "Profile 3"
+            { key: "Profile 1", dbKey: "profile1", name: "Main Profile (Default)" }
         ];
     }
-    return ["Profile 1", "Profile 2", "Profile 3"];
-}
 
-function updateProfileDropdown() {
-    const select = document.getElementById('new-profile-select');
-    if (!select) return;
-    
-    select.innerHTML = '';
-    const profileNames = getCurrentProfileNames();
-    
-    profileNames.forEach((name, index) => {
-        const option = document.createElement('option');
-        option.value = `Profile ${index + 1}`; 
-        option.textContent = name;
-        select.appendChild(option);
+    return sortedKeys.map(k => {
+        const num = k.replace('profile', '');
+        return {
+            key: `Profile ${num}`, 
+            dbKey: k, 
+            name: config[k]
+        };
     });
 }
 
-function updateEditProfileDropdown() {
-    const select = document.getElementById('edit-profile-select');
-    if (!select) return;
+function renderProfileSelectionList() {
+    const container = document.getElementById('profile-list-grid');
+    container.innerHTML = '';
     
-    select.innerHTML = '';
-    const profileNames = getCurrentProfileNames();
-    
-    profileNames.forEach((name, index) => {
-        const option = document.createElement('option');
-        option.value = `Profile ${index + 1}`; 
-        option.textContent = name;
-        select.appendChild(option);
-    });
-}
+    const profiles = getProfileData();
 
-
-function formatViews(n) {
-    if (!n) return '0';
-    if (n < 1000) return n;
-    if (n < 1000000) return (n / 1000).toFixed(1) + 'K';
-    return (n / 1000000).toFixed(1) + 'M';
-}
-
-function toggleSortMenu() {
-    const menu = document.getElementById('sort-menu');
-    if(menu) menu.classList.toggle('hidden');
-}
-
-function setSort(order) {
-    currentSortOrder = order;
-    toggleSortMenu();
-    renderDashboard();
-    
-    const btnSpan = document.querySelector('#sort-btn span');
-    if(btnSpan) {
-        if(order === 'newest') btnSpan.innerText = 'NEWEST';
-        else if(order === 'oldest') btnSpan.innerText = 'OLDEST';
-        else if(order === 'views') btnSpan.innerText = 'VIEWS';
-        else if(order === 'name') btnSpan.innerText = 'A-Z';
-    }
-}
-
-function sortVideos(videos) {
-    return videos.sort((a, b) => {
-        if (currentSortOrder === 'views') {
-            const vA = a.views ? parseInt(a.views) : 0;
-            const vB = b.views ? parseInt(b.views) : 0;
-            return vB - vA;
-        } else if (currentSortOrder === 'name') {
-            return a.title.localeCompare(b.title);
-        } else if (currentSortOrder === 'oldest') {
-            const tA = a.createdAt ? a.createdAt.seconds : 0;
-            const tB = b.createdAt ? b.createdAt.seconds : 0;
-            return tA - tB;
-        } else {
-            const tA = a.createdAt ? a.createdAt.seconds : 0;
-            const tB = b.createdAt ? b.createdAt.seconds : 0;
-            return tB - tA;
-        }
-    });
-}
-
-// --- NEW: LONG PRESS & SELECTION LOGIC ---
-
-function handleRowTouchStart(e, id) {
-    if (isSelectionMode) return; // If already in mode, handle as normal click/toggle
-    
-    longPressTimer = setTimeout(() => {
-        enterSelectionMode(id);
-        if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback
-    }, LONG_PRESS_DURATION);
-}
-
-function handleRowTouchEnd(e) {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-    }
-}
-
-function handleRowTouchMove(e) {
-    // If user scrolls, cancel long press
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-    }
-}
-
-// Desktop mouse events (for testing on desktop)
-function handleRowMouseDown(e, id) {
-    if (isSelectionMode) return;
-    // Only left click
-    if (e.button !== 0) return;
-    
-    longPressTimer = setTimeout(() => {
-        enterSelectionMode(id);
-    }, LONG_PRESS_DURATION);
-}
-
-function handleRowMouseUp(e) {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-    }
-}
-
-function handleRowClick(e, id) {
-    // If not in selection mode, normal behavior (bubble up to links etc)
-    // If IS in selection mode, toggle selection
-    if (isSelectionMode) {
-        e.preventDefault();
-        e.stopPropagation(); // Stop link clicks
-        toggleSelection(id);
-    }
-}
-
-function enterSelectionMode(initialId) {
-    isSelectionMode = true;
-    selectedVideoIds.clear();
-    toggleSelection(initialId);
-    
-    document.body.classList.add('selection-mode');
-    
-    // Switch Navbar
-    document.getElementById('nav-logo-group').classList.add('hidden');
-    document.getElementById('selection-actions').classList.remove('hidden');
-    
-    // Update UI immediately (add classes to rows)
-    renderDashboard(); // Re-render to show checkboxes state
-}
-
-function exitSelectionMode() {
-    isSelectionMode = false;
-    selectedVideoIds.clear();
-    
-    document.body.classList.remove('selection-mode');
-    
-    // Switch Navbar Back
-    document.getElementById('nav-logo-group').classList.remove('hidden');
-    document.getElementById('selection-actions').classList.add('hidden');
-    
-    // Reset FAB
-    const fab = document.getElementById('main-fab');
-    fab.innerText = "+ ADD VIDEO";
-    fab.classList.remove('fab-delete-mode');
-    
-    renderDashboard();
-}
-
-function toggleSelection(id) {
-    if (selectedVideoIds.has(id)) {
-        selectedVideoIds.delete(id);
-    } else {
-        selectedVideoIds.add(id);
-    }
-    
-    // If all deselected, should we exit mode? Optional. Lets keep it active.
-    if (selectedVideoIds.size === 0) {
-        // Optional: exitSelectionMode(); 
-    }
-    
-    updateSelectionUI();
-}
-
-function updateSelectionUI() {
-    // Update individual row styles without full re-render
-    document.querySelectorAll('.video-item').forEach(row => {
-        const id = row.id.replace('video-', '');
-        const checkbox = row.querySelector('.selection-checkbox');
+    profiles.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'profile-select-card';
+        card.onclick = () => openProfileFeed(p.key, p.name);
         
-        if (selectedVideoIds.has(id)) {
-            row.classList.add('selected');
-        } else {
-            row.classList.remove('selected');
-        }
+        card.innerHTML = `
+            <div>
+                <h3 style="color: #fff; font-size: 16px;">${p.name}</h3>
+                <span style="color: #666; font-size: 12px;">${currentUser} • ${currentPlatform}</span>
+            </div>
+            <div style="color: #ff4444;">&#8594;</div>
+        `;
+        container.appendChild(card);
     });
-    
-    // Update FAB
-    const fab = document.getElementById('main-fab');
-    const count = selectedVideoIds.size;
-    
-    if (count > 0) {
-        fab.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> DELETE (${count})`;
-        fab.classList.add('fab-delete-mode');
-    } else {
-        fab.innerHTML = "SELECT ITEMS";
-        fab.classList.remove('fab-delete-mode');
-    }
 }
 
-// Global FAB Handler
-function handleFabClick() {
-    if (isSelectionMode) {
-        if (selectedVideoIds.size > 0) {
-            deleteSelectedVideos();
-        } else {
-            showToast("Select videos to delete", "info");
-        }
-    } else {
-        toggleAddModal(true);
-    }
-}
-
-async function deleteSelectedVideos() {
-    if (!confirm(`Are you sure you want to delete ${selectedVideoIds.size} videos?`)) return;
-    
+async function fetchVideosForProfile() {
     showLoading(true);
-    const batch = db.batch();
-    
-    selectedVideoIds.forEach(id => {
-        const ref = db.collection('videos').doc(id);
-        batch.delete(ref);
-    });
-    
+    if (unsubscribeVideos) unsubscribeVideos();
+
     try {
-        await batch.commit();
-        showToast(`Deleted ${selectedVideoIds.size} videos.`, 'success');
-        exitSelectionMode();
+        unsubscribeVideos = db.collection('videos')
+            .where('person', '==', currentUser)
+            .where('platform', '==', currentPlatform)
+            .where('profile', '==', currentProfileKey)
+            .onSnapshot((snapshot) => {
+                appData = [];
+                snapshot.forEach((doc) => {
+                    appData.push({ ...doc.data(), id: doc.id });
+                });
+                renderDashboard(); 
+                updateHeaderStats();
+                showLoading(false);
+            }, (error) => {
+                console.error("Firestore Error:", error);
+                if (error.code === 'failed-precondition') {
+                    showToast("Index required! Check Console.", "error");
+                } else {
+                    showToast('Error syncing data.', 'error');
+                }
+                showLoading(false);
+            });
+
     } catch (error) {
-        showToast("Error deleting videos.", "error");
+        showToast('Error loading data.', 'error');
         console.error(error);
+        showLoading(false);
     }
-    showLoading(false);
 }
 
+function updateHeaderStats() {
+    let totalViews = 0;
+    let totalVideos = appData.length;
+    let approvedCount = 0;
+    let rejectedCount = 0;
+    let pendingCount = 0;
+    
+    appData.forEach(v => {
+        totalViews += (v.views ? parseInt(v.views) : 0);
+        if (v.status === 'Approved') approvedCount++;
+        else if (v.status === 'Rejected') rejectedCount++;
+        else pendingCount++;
+    });
 
-// --- RENDER DASHBOARD (UPDATED) ---
+    const revenue = (totalViews / 1000) * 2.25;
+
+    document.getElementById('stat-revenue').innerText = `$${revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // Now displaying total videos (clips) instead of average views
+    document.getElementById('stat-total-clips').innerText = totalVideos.toString();
+
+    const pApproved = totalVideos > 0 ? (approvedCount / totalVideos) * 100 : 0;
+    const pPending = totalVideos > 0 ? (pendingCount / totalVideos) * 100 : 0;
+    const pRejected = totalVideos > 0 ? (rejectedCount / totalVideos) * 100 : 0;
+
+    document.getElementById('prog-approved').style.width = `${pApproved}%`;
+    document.getElementById('prog-pending').style.width = `${pPending}%`;
+    document.getElementById('prog-rejected').style.width = `${pRejected}%`;
+}
+
 function renderDashboard() {
     const container = document.getElementById('profiles-container');
     container.innerHTML = "";
 
-    const profileNames = getCurrentProfileNames();
-    const filteredData = appData.filter(item => item.platform === currentPlatform);
+    let videos = [...appData]; 
+    videos = sortVideos(videos);
 
-    const grouped = {};
-    ["Profile 1", "Profile 2", "Profile 3"].forEach(p => grouped[p] = []);
+    const section = document.createElement('div');
+    section.className = 'profile-section';
+
+    section.innerHTML = `
+        <div class="video-list">
+            ${videos.map(video => createVideoRow(video)).join('')}
+            ${videos.length === 0 ? '<p style="color:#444; font-size:12px; font-style:italic; padding: 20px;">No videos found in this profile.</p>' : ''}
+        </div>
+    `;
+    container.appendChild(section);
     
-    filteredData.forEach(item => {
-        if (grouped[item.profile]) {
-            grouped[item.profile].push(item);
-        }
-    });
-
-    ["Profile 1", "Profile 2", "Profile 3"].forEach((profileKey, index) => {
-        let videos = grouped[profileKey];
-        const displayName = profileNames[index];
-        
-        videos = sortVideos(videos);
-
-        const total = videos.length;
-        const approved = videos.filter(v => v.status === "Approved").length;
-        const progressPct = total === 0 ? 0 : (approved / total) * 100;
-
-        const totalProfileViews = videos.reduce((acc, curr) => {
-            const v = curr.views ? parseInt(curr.views) : 0;
-            return acc + v;
-        }, 0);
-        
-        const formattedTotalViews = formatViews(totalProfileViews);
-
-        const section = document.createElement('div');
-        section.className = 'profile-section';
-        
-        section.innerHTML = `
-            <div class="profile-header">
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <h3 style="color:#fff; font-size: 16px;">${displayName}</h3>
-                    
-                    <button class="icon-btn edit-btn" onclick="openProfileSettings(${index})" style="padding: 4px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                            <path d="M11 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22H15C20 22 22 20 22 15V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M16.04 3.02001L8.16 10.9C7.86 11.2 7.56 11.79 7.5 12.22L7.07 15.23C6.91 16.32 7.68 17.08 8.77 16.93L11.78 16.5C12.2 16.44 12.79 16.14 13.1 15.84L20.98 7.96001C22.34 6.60001 22.98 5.02001 20.98 3.02001C18.98 1.02001 17.4 1.66001 16.04 3.02001Z" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M14.91 4.15002C15.58 6.54002 17.45 8.41002 19.85 9.09002" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </button>
-
-                    <div class="total-views-badge">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                        ${formattedTotalViews}
-                    </div>
-
-                </div>
-                <span style="color:#666; font-size: 12px;">${approved}/${total} Approved</span>
-            </div>
-            <div class="progress-track">
-                <div class="progress-fill" style="width: ${progressPct}%"></div>
-            </div>
-            <div class="video-list">
-                ${videos.map(video => createVideoRow(video)).join('')}
-                ${videos.length === 0 ? '<p style="color:#444; font-size:12px; font-style:italic;">No videos yet.</p>' : ''}
-            </div>
-        `;
-        container.appendChild(section);
-    });
-    
-    updateProfileDropdown();
-    // After render, make sure UI matches selection state
     if(isSelectionMode) updateSelectionUI();
 }
 
@@ -502,12 +474,10 @@ function createVideoRow(video) {
     const isApproved = video.status === "Approved";
     const isRejected = video.status === "Rejected";
     
-    // Class determination
     let statusClass = 'status-pending';
     if (isApproved) statusClass = 'status-approved';
     if (isRejected) statusClass = 'status-rejected';
     
-    // Check if selected
     const isSelected = selectedVideoIds.has(video.id);
 
     const viewsDisplay = video.views !== undefined 
@@ -517,7 +487,22 @@ function createVideoRow(video) {
            </span>`
         : '';
 
-    // ADDED: Events for long press, ID for selection logic, Checkbox HTML
+    const likesDisplay = video.likes !== undefined 
+        ? `<span class="view-count" title="Likes" style="margin-left: 12px;">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+             ${formatViews(video.likes)}
+           </span>`
+        : '';
+
+    const rawViews = video.views ? parseInt(video.views) : 0;
+    const estimatedRevenue = (rawViews / 1000) * 1.5;
+
+    const revenueBadge = estimatedRevenue > 0 
+        ? `<span style="color: #ffa500; font-size: 14px; margin-left: 24px; font-weight: bold; margin-bottom: 4px">
+            $${estimatedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>`
+        : '';
+
     return `
         <div class="video-item ${isSelected ? 'selected' : ''}" 
              id="video-${video.id}"
@@ -529,16 +514,20 @@ function createVideoRow(video) {
              onmouseup="handleRowMouseUp(event)"
              onclick="handleRowClick(event, '${video.id}')"
         >
-            
             <div style="display: flex; width: 100%; align-items: center;">
                 <div class="selection-checkbox">
                     <div class="checkbox-circle"></div>
                 </div>
 
                 <div class="video-info">
-                    <h4>${video.title}</h4>
-                    <a href="${video.link}" target="_blank">Watch Video &#8599;</a>
-                    ${viewsDisplay}
+                    <div style="display: flex; align-items: center;">
+                       <h4>${video.title}</h4>
+                       ${revenueBadge}
+                    </div>
+                    <div style="display: flex; align-items: center; margin-top: 2px;">
+                        ${viewsDisplay}
+                        ${likesDisplay}
+                    </div>
                 </div>
                 
                 <div class="video-actions">
@@ -569,7 +558,6 @@ function createVideoRow(video) {
                                  </svg>
                                  Edit Details
                              </div>
-                             
                              <div class="dropdown-item item-rejected" onclick="markAsRejected('${video.id}')">
                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"></circle>
@@ -584,32 +572,50 @@ function createVideoRow(video) {
                                  </svg>
                                  Delete
                              </div>
+                             <a href="${video.link}" target="_blank" class="dropdown-item" style="text-decoration: none;">
+                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                 </svg>
+                                 Watch Video
+                             </a>
                         </div>
                     </div>
-
                 </div>
             </div>
 
-            <div id="smm-panel-${video.id}" class="smm-panel hidden">
-                <select id="smm-provider-${video.id}" class="smm-input smm-select" style="width: 110px;" onchange="syncSmmDropdowns('${video.id}')">
-                    <option value="smmRaja">SMM Raja</option>
-                    <option value="smmPanelOne">SMM Panel One</option>
-                </select>
+            <div id="smm-panel-${video.id}" class="smm-panel hidden" data-provider="smmRaja" data-mode="views">
+                
+                <div class="smm-toggle-group">
+                    <button class="smm-toggle-btn active" onclick="setSmmProvider(event, '${video.id}', 'smmRaja')" id="prov-raja-${video.id}" title="SMM Raja">
+                        R
+                    </button>
+                    <button class="smm-toggle-btn" onclick="setSmmProvider(event, '${video.id}', 'smmPanelOne')" id="prov-one-${video.id}" title="SMM Panel One">
+                        O
+                    </button>
+                </div>
             
-                <select id="smm-service-${video.id}" class="smm-input smm-select" style="width: 120px;">
-                    <optgroup label="SMM Raja Services">
-                        <option value="1224">R - ꚠ V</option>
-                        <option value="2150">R - ꚠ L</option>
-                    </optgroup>
-                    <optgroup label="SMM Panel One Services">
-                        <option value="8429">PO - ꚠ V</option> 
-                        <option value="12981">PO - ꚠ Likes</option>
-                    </optgroup>
-                </select>
+                <div class="smm-toggle-group">
+                    <button class="smm-toggle-btn active" onclick="setSmmMode(event, '${video.id}', 'views')" id="mode-views-${video.id}" title="Views">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                    <button class="smm-toggle-btn" onclick="setSmmMode(event, '${video.id}', 'likes')" id="mode-likes-${video.id}" title="Likes">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    </button>
+                </div>
                 
-                <input type="number" id="smm-quantity-${video.id}" class="smm-input smm-quantity" placeholder="Qty (e.g. 100)">
-                
-                <button id="smm-send-btn-${video.id}" class="cta-button smm-send-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}')">SEND</button>
+                <div class="smm-quantities" id="quantities-views-${video.id}">
+                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 100, this)">100</button>
+                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 300, this)">300</button>
+                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 1000, this)">1000</button>
+                </div>
+
+                <div class="smm-quantities hidden" id="quantities-likes-${video.id}">
+                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 10, this)">10</button>
+                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 30, this)">30</button>
+                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 100, this)">100</button>
+                </div>
                 
                 <div class="smm-log" id="smm-log-${video.id}">
                     Last: ${video.lastSmmOrder ? video.lastSmmOrder : 'Never'}
@@ -619,13 +625,46 @@ function createVideoRow(video) {
     `;
 }
 
-// --- REFRESH STATS FUNCTION (NEW) ---
+async function submitNewVideo() {
+    const title = document.getElementById('new-title').value.trim();
+    const link = document.getElementById('new-link').value.trim();
+    
+    if(!title || !link) {
+        showToast('Please fill all fields', 'error');
+        return;
+    }
+
+    toggleAddModal(false);
+    showLoading(true);
+
+    const newVideo = {
+        person: currentUser,
+        platform: currentPlatform,
+        profile: currentProfileKey,
+        title: title,
+        link: link,
+        status: "Pending", 
+        views: 0,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+        await db.collection('videos').add(newVideo);
+        showToast('Video added successfully!', 'success');
+        document.getElementById('new-title').value = "";
+        document.getElementById('new-link').value = "";
+    } catch (error) {
+        showToast('Failed to save video', 'error');
+        console.error(error);
+    }
+    showLoading(false);
+}
+
 async function refreshStats() {
     const btn = document.getElementById('refresh-btn');
     const btnText = btn.querySelector('span');
     const originalText = btnText.innerText;
     
-    // 1. Get List of Videos to Update
     const videosToUpdate = appData.filter(v => v.link && v.link.startsWith('http'));
 
     if (videosToUpdate.length === 0) {
@@ -633,14 +672,12 @@ async function refreshStats() {
         return;
     }
 
-    // 2. Enter Loading State
     btn.classList.add('refresh-loading');
     btn.disabled = true;
     
     let successCount = 0;
     let failCount = 0;
 
-    // 3. Loop through videos one by one
     for (let i = 0; i < videosToUpdate.length; i++) {
         const video = videosToUpdate[i];
         btnText.innerText = `Checking ${i + 1}/${videosToUpdate.length}...`;
@@ -662,451 +699,324 @@ async function refreshStats() {
                 successCount++;
             } else {
                 failCount++;
-                console.warn(`Failed to update ${video.title}`);
             }
 
         } catch (error) {
-            console.error(`Error updating ${video.title}:`, error);
             failCount++;
         }
-        
         await new Promise(r => setTimeout(r, 500));
     }
 
-    // 4. Reset Button State & Show Summary
     btn.classList.remove('refresh-loading');
     btn.disabled = false;
     btnText.innerText = originalText;
 
-    if (successCount > 0) {
-        showToast(`Updated ${successCount} videos! (${failCount} skipped)`, 'success');
-    } else {
-        showToast('Update finished, but no videos changed.', 'info');
+    let msg = `Updated: ${successCount}`;
+    if(failCount > 0) msg += ` | Skipped: ${failCount}`;
+    
+    showToast(msg, failCount > 0 ? 'info' : 'success');
+}
+
+function toggleSortMenu() {
+    const menu = document.getElementById('sort-menu');
+    if(menu) menu.classList.toggle('hidden');
+}
+
+function setSort(order) {
+    currentSortOrder = order;
+    toggleSortMenu();
+    renderDashboard(); 
+    const btnSpan = document.querySelector('#sort-btn span');
+    if(btnSpan) {
+        if(order === 'newest') btnSpan.innerText = 'NEWEST';
+        else if(order === 'oldest') btnSpan.innerText = 'OLDEST';
+        else if(order === 'views') btnSpan.innerText = 'VIEWS';
+        else if(order === 'name') btnSpan.innerText = 'A-Z';
     }
 }
 
-// --- ACTIONS (CRUD) ---
-
-// Toggle Dropdown Visibility
-function toggleDropdown(id) {
-    if (isSelectionMode) return; // Disable in selection mode
-    document.querySelectorAll('.dropdown-menu').forEach(menu => {
-        if(menu.id !== `dropdown-${id}`) menu.classList.add('hidden');
+function sortVideos(videos) {
+    return videos.sort((a, b) => {
+        if (currentSortOrder === 'views') {
+            return (b.views ? parseInt(b.views) : 0) - (a.views ? parseInt(a.views) : 0);
+        } else if (currentSortOrder === 'name') {
+            return a.title.localeCompare(b.title);
+        } else if (currentSortOrder === 'oldest') {
+            const tA = a.createdAt ? a.createdAt.seconds : 0;
+            const tB = b.createdAt ? b.createdAt.seconds : 0;
+            return tA - tB;
+        } else {
+            const tA = a.createdAt ? a.createdAt.seconds : 0;
+            const tB = b.createdAt ? b.createdAt.seconds : 0;
+            return tB - tA;
+        }
     });
+}
 
-    const menu = document.getElementById(`dropdown-${id}`);
-    if (menu) {
-        menu.classList.toggle('hidden');
+function formatViews(n) {
+    if (!n) return '0';
+    if (n < 1000) return n;
+    if (n < 1000000) return (n / 1000).toFixed(1) + 'K';
+    return (n / 1000000).toFixed(1) + 'M';
+}
+
+function handleRowTouchStart(e, id) {
+    if (isSelectionMode) return;
+    longPressTimer = setTimeout(() => { enterSelectionMode(id); if (navigator.vibrate) navigator.vibrate(50); }, LONG_PRESS_DURATION);
+}
+function handleRowTouchEnd() { if (longPressTimer) clearTimeout(longPressTimer); }
+function handleRowTouchMove() { if (longPressTimer) clearTimeout(longPressTimer); }
+function handleRowMouseDown(e, id) { if (isSelectionMode) return; if (e.button !== 0) return; longPressTimer = setTimeout(() => enterSelectionMode(id), LONG_PRESS_DURATION); }
+function handleRowMouseUp() { if (longPressTimer) clearTimeout(longPressTimer); }
+
+function handleRowClick(e, id) {
+    if (isSelectionMode) {
+        e.preventDefault(); e.stopPropagation();
+        toggleSelection(id);
     }
 }
 
-// Mark as Rejected
-async function markAsRejected(id) {
-    try {
-        await db.collection('videos').doc(id).update({
-            status: "Rejected"
-        });
-        showToast('Status updated to Rejected', 'info');
-    } catch (error) {
-        showToast('Failed to update status', 'error');
-        console.error(error);
-    }
-    const menu = document.getElementById(`dropdown-${id}`);
-    if(menu) menu.classList.add('hidden');
+function enterSelectionMode(initialId) {
+    isSelectionMode = true; selectedVideoIds.clear(); toggleSelection(initialId);
+    document.body.classList.add('selection-mode');
+    document.getElementById('nav-logo-group').classList.add('hidden');
+    document.getElementById('selection-actions').classList.remove('hidden');
+    renderDashboard();
 }
 
-const debouncedToggleStatus = debounce(async function(id, currentStatus) {
-    if (isSelectionMode) return; // Disable in selection mode
+function exitSelectionMode() {
+    isSelectionMode = false; selectedVideoIds.clear();
+    document.body.classList.remove('selection-mode');
+    document.getElementById('nav-logo-group').classList.remove('hidden');
+    document.getElementById('selection-actions').classList.add('hidden');
+    const fab = document.getElementById('main-fab');
+    fab.innerText = "+ ADD VIDEO";
+    fab.classList.remove('fab-delete-mode');
+    renderDashboard();
+}
 
-    let newStatus = "Approved";
-    
-    if (currentStatus === "Approved") {
-        newStatus = "Pending";
-    } else if (currentStatus === "Pending") {
-        newStatus = "Approved";
-    } else if (currentStatus === "Rejected") {
-        newStatus = "Approved";
-    }
-    
-    try {
-        await db.collection('videos').doc(id).update({
-            status: newStatus
-        });
-        showToast(`Status updated to ${newStatus}`, 'success');
-    } catch (error) {
-        showToast('Failed to update status', 'error');
-        console.error(error);
-    }
-}, 300);
+function toggleSelection(id) {
+    if (selectedVideoIds.has(id)) selectedVideoIds.delete(id); else selectedVideoIds.add(id);
+    updateSelectionUI();
+}
 
-async function submitNewVideo() {
-    const profile = document.getElementById('new-profile-select').value;
-    const title = document.getElementById('new-title').value.trim();
-    const link = document.getElementById('new-link').value.trim();
-    
-    if(!title || !link) {
-        showToast('Please fill all fields', 'error');
-        return;
+function updateSelectionUI() {
+    document.querySelectorAll('.video-item').forEach(row => {
+        const id = row.id.replace('video-', '');
+        if (selectedVideoIds.has(id)) row.classList.add('selected'); else row.classList.remove('selected');
+    });
+    const fab = document.getElementById('main-fab');
+    if (selectedVideoIds.size > 0) {
+        fab.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> DELETE (${selectedVideoIds.size})`;
+        fab.classList.add('fab-delete-mode');
+    } else {
+        fab.innerHTML = "SELECT ITEMS";
+        fab.classList.remove('fab-delete-mode');
     }
+}
 
-    toggleAddModal(false);
+function handleFabClick() {
+    if (isSelectionMode) {
+        if (selectedVideoIds.size > 0) deleteSelectedVideos();
+        else showToast("Select videos to delete", "info");
+    } else {
+        document.getElementById('add-modal-subtitle').innerText = `Adding to: ${currentUser} > ${currentProfileName}`;
+        toggleAddModal(true);
+    }
+}
+
+async function deleteSelectedVideos() {
+    if (!confirm(`Delete ${selectedVideoIds.size} videos?`)) return;
     showLoading(true);
-
-    const newVideo = {
-        person: currentUser,
-        platform: currentPlatform,
-        profile: profile,
-        title: title,
-        link: link,
-        status: "Pending", 
-        views: 0,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp() // NEW: Save timestamp
-    };
-
-    try {
-        await db.collection('videos').add(newVideo);
-        showToast('Video added successfully!', 'success');
-        document.getElementById('new-title').value = "";
-        document.getElementById('new-link').value = "";
-    } catch (error) {
-        showToast('Failed to save video', 'error');
-        console.error(error);
-    }
+    const batch = db.batch();
+    selectedVideoIds.forEach(id => { batch.delete(db.collection('videos').doc(id)); });
+    try { await batch.commit(); showToast(`Deleted.`, 'success'); exitSelectionMode(); }
+    catch (error) { showToast("Error.", "error"); }
     showLoading(false);
 }
 
-// --- NEW EDIT FUNCTIONS ---
+function toggleDropdown(id) {
+    if (isSelectionMode) return;
+    document.querySelectorAll('.dropdown-menu').forEach(menu => { if(menu.id !== `dropdown-${id}`) menu.classList.add('hidden'); });
+    const menu = document.getElementById(`dropdown-${id}`);
+    if (menu) menu.classList.toggle('hidden');
+}
+
+async function markAsRejected(id) {
+    try { await db.collection('videos').doc(id).update({ status: "Rejected" }); showToast('Status updated', 'info'); } 
+    catch (error) { showToast('Failed', 'error'); }
+    const menu = document.getElementById(`dropdown-${id}`); if(menu) menu.classList.add('hidden');
+}
+
+const debouncedToggleStatus = debounce(async function(id, currentStatus) {
+    if (isSelectionMode) return;
+    let newStatus = currentStatus === "Approved" ? "Pending" : "Approved";
+    try { await db.collection('videos').doc(id).update({ status: newStatus }); showToast(`Updated to ${newStatus}`, 'success'); } 
+    catch (error) { showToast('Failed', 'error'); }
+}, 300);
 
 function openEditVideoModal(id) {
-    // 1. Find the video in appData
     const video = appData.find(v => v.id === id);
-    if (!video) {
-        showToast("Error finding video data", "error");
-        return;
-    }
-
-    // 2. Set global currentEditingId
+    if (!video) return;
     currentEditingId = id;
-
-    // 3. Populate inputs
-    updateEditProfileDropdown(); // Ensure dropdown has correct options
-    document.getElementById('edit-profile-select').value = video.profile;
     document.getElementById('edit-title').value = video.title;
     document.getElementById('edit-link').value = video.link;
-
-    // 4. Show Modal
-    // Hide the dropdown menu first
-    // toggleDropdown(id); // Dropdown logic might conflict, just hide all
     document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
-    
     toggleEditVideoModal(true);
 }
 
 function toggleEditVideoModal(show) {
     const modal = document.getElementById('edit-video-modal');
-    if(show) modal.classList.remove('hidden');
-    else modal.classList.add('hidden');
+    if(show) modal.classList.remove('hidden'); else modal.classList.add('hidden');
 }
 
 async function saveVideoEdit() {
     if (!currentEditingId) return;
-
-    const profile = document.getElementById('edit-profile-select').value;
     const title = document.getElementById('edit-title').value.trim();
     const link = document.getElementById('edit-link').value.trim();
-    
-    if(!title || !link) {
-        showToast('Please fill all fields', 'error');
-        return;
-    }
-
-    toggleEditVideoModal(false);
-    showLoading(true);
-
-    try {
-        await db.collection('videos').doc(currentEditingId).update({
-            profile: profile,
-            title: title,
-            link: link
-        });
-        showToast('Video details updated!', 'success');
-    } catch (error) {
-        showToast('Failed to update video', 'error');
-        console.error(error);
-    }
-    showLoading(false);
-    currentEditingId = null;
+    if(!title || !link) return;
+    toggleEditVideoModal(false); showLoading(true);
+    try { await db.collection('videos').doc(currentEditingId).update({ title: title, link: link }); showToast('Updated!', 'success'); } 
+    catch (error) { showToast('Failed', 'error'); }
+    showLoading(false); currentEditingId = null;
 }
-
 
 async function deleteVideo(id) {
-    if(!confirm("Are you sure you want to delete this video?")) return;
-
-    try {
-        await db.collection('videos').doc(id).delete();
-        showToast('Video deleted', 'success');
-    } catch (error) {
-        showToast('Failed to delete video', 'error');
-        console.error(error);
-    }
+    if(!confirm("Delete?")) return;
+    try { await db.collection('videos').doc(id).delete(); showToast('Deleted', 'success'); } 
+    catch (error) { showToast('Failed', 'error'); }
 }
 
-// --- PROFILE SETTINGS FUNCTIONS ---
-function openProfileSettings(profileIndex = null) {
+function openProfileSettings() {
     const modal = document.getElementById('profile-settings-modal');
-    const profileNames = getCurrentProfileNames();
-    
-    document.getElementById('profile-name-1').value = profileNames[0];
-    document.getElementById('profile-name-2').value = profileNames[1];
-    document.getElementById('profile-name-3').value = profileNames[2];
-    
+    const container = document.getElementById('dynamic-profile-inputs');
+    container.innerHTML = ''; 
+    const profiles = getProfileData();
+    profiles.forEach(p => {
+        const row = document.createElement('div');
+        row.style.display = 'flex'; row.style.gap = '8px'; row.style.alignItems = 'center'; row.style.marginBottom = '10px'; row.className = 'profile-input-row';
+        const input = document.createElement('input');
+        input.type = 'text'; input.value = p.name; input.dataset.dbkey = p.dbKey; input.className = 'mamba-input'; input.style.marginTop = '0'; 
+        const delBtn = document.createElement('button');
+        delBtn.className = 'icon-btn delete-btn'; delBtn.style.marginTop = '0'; delBtn.style.minWidth = '38px';
+        delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        delBtn.onclick = () => row.remove();
+        row.appendChild(input); row.appendChild(delBtn); container.appendChild(row);
+    });
     modal.classList.remove('hidden');
-    
-    if (profileIndex !== null) {
-        setTimeout(() => {
-            document.getElementById(`profile-name-${profileIndex + 1}`).focus();
-        }, 100);
-    }
+}
+
+function addNewProfileField() {
+    const container = document.getElementById('dynamic-profile-inputs');
+    let maxIndex = 0;
+    container.querySelectorAll('input').forEach(inp => {
+        const num = parseInt(inp.dataset.dbkey.replace('profile', ''));
+        if (!isNaN(num) && num > maxIndex) maxIndex = num;
+    });
+    const newIndex = maxIndex + 1;
+    const row = document.createElement('div');
+    row.style.display = 'flex'; row.style.gap = '8px'; row.style.alignItems = 'center'; row.style.marginBottom = '10px'; row.className = 'profile-input-row';
+    const input = document.createElement('input');
+    input.type = 'text'; input.placeholder = `New Profile Name`; input.dataset.dbkey = `profile${newIndex}`; input.className = 'mamba-input'; input.style.marginTop = '0';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn delete-btn'; delBtn.style.marginTop = '0'; delBtn.style.minWidth = '38px';
+    delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+    delBtn.onclick = () => row.remove();
+    row.appendChild(input); row.appendChild(delBtn); container.appendChild(row); input.focus();
+}
+
+async function saveProfileNames() {
+    const rows = document.querySelectorAll('.profile-input-row');
+    const updates = {}; const localConfig = {}; const activeKeys = new Set();
+    let hasError = false;
+    const existingProfiles = getProfileData();
+    const existingKeys = existingProfiles.map(p => p.dbKey);
+    rows.forEach((row) => {
+        const input = row.querySelector('input');
+        const val = input.value.trim();
+        const dbKey = input.dataset.dbkey;
+        if (!val) hasError = true;
+        activeKeys.add(dbKey);
+        updates[`profileConfig.${currentUser}.${currentPlatform}.${dbKey}`] = val;
+        localConfig[dbKey] = val;
+    });
+    if (hasError) { showToast('All fields must be filled', 'error'); return; }
+    existingKeys.forEach(key => {
+        if (!activeKeys.has(key)) {
+            updates[`profileConfig.${currentUser}.${currentPlatform}.${key}`] = firebase.firestore.FieldValue.delete();
+        }
+    });
+    showLoading(true);
+    try {
+        await db.collection('settings').doc('global').update(updates);
+        if (!profileConfig[currentUser]) profileConfig[currentUser] = {};
+        profileConfig[currentUser][currentPlatform] = localConfig;
+        if(document.getElementById('profile-select-view').classList.contains('active')) renderProfileSelectionList();
+        showToast('Saved!', 'success'); toggleProfileSettingsModal(false);
+    } catch (error) { console.error(error); showToast('Error saving.', 'error'); }
+    showLoading(false);
 }
 
 function toggleProfileSettingsModal(show) {
     const modal = document.getElementById('profile-settings-modal');
-    if (show) modal.classList.remove('hidden');
-    else modal.classList.add('hidden');
+    if (show) modal.classList.remove('hidden'); else modal.classList.add('hidden');
 }
 
-async function saveProfileNames() {
-    const profile1 = document.getElementById('profile-name-1').value.trim();
-    const profile2 = document.getElementById('profile-name-2').value.trim();
-    const profile3 = document.getElementById('profile-name-3').value.trim();
-    
-    if (!profile1 || !profile2 || !profile3) {
-        showToast('All profile names are required', 'error');
-        return;
-    }
-    
-    showLoading(true);
-    
-    try {
-        const updateField = `profileConfig.${currentUser}.${currentPlatform}`;
-        
-        await db.collection('settings').doc('global').update({
-            [`${updateField}.profile1`]: profile1,
-            [`${updateField}.profile2`]: profile2,
-            [`${updateField}.profile3`]: profile3
-        });
-        
-        if (!profileConfig[currentUser]) profileConfig[currentUser] = {};
-        profileConfig[currentUser][currentPlatform] = { profile1, profile2, profile3 };
-        
-        renderDashboard();
-        showToast('Profile names updated!', 'success');
-        toggleProfileSettingsModal(false);
-        
-    } catch (error) {
-        if (error.code === 'not-found') {
-            await db.collection('settings').doc('global').set({
-                 profileConfig: {
-                     [currentUser]: {
-                         [currentPlatform]: { profile1, profile2, profile3 }
-                     }
-                 }
-            }, { merge: true });
-            renderDashboard();
-            showToast('Profile names updated!', 'success');
-            toggleProfileSettingsModal(false);
-        } else {
-            showToast('Failed to update profile names', 'error');
-            console.error('Error saving profile names:', error);
-        }
-    }
-    
-    showLoading(false);
-}
-
-// --- UTILITIES ---
 function toggleAddModal(show) {
     const modal = document.getElementById('add-modal');
-    if(show) modal.classList.remove('hidden');
-    else modal.classList.add('hidden');
-}
-
-async function copyLink(link) {
-    try {
-        await navigator.clipboard.writeText(link);
-        showToast('Link copied to clipboard!', 'success');
-    } catch (error) {
-        showToast('Failed to copy link', 'error');
-    }
+    if(show) modal.classList.remove('hidden'); else modal.classList.add('hidden');
 }
 
 function showLoading(show) {
     const dot = document.getElementById('loading-indicator');
     if(show) {
-        dot.style.background = "#ff4444";
-        dot.style.boxShadow = "0 0 10px #ff4444";
+        dot.style.background = "#ff4444"; dot.style.boxShadow = "0 0 10px #ff4444";
         dot.innerHTML = `<svg width="8" height="8" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#ff4444" stroke-width="4" stroke-dasharray="30" stroke-dashoffset="30"></circle></svg>`;
-    } else {
-        dot.style.background = "transparent";
-        dot.style.boxShadow = "none";
-        dot.innerHTML = "";
-    }
+    } else { dot.style.background = "transparent"; dot.style.boxShadow = "none"; dot.innerHTML = ""; }
 }
 
 function getPlatformLogo(platform) {
-  if (platform === 'Instagram') {
-    return `
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-      </svg>
-    `;
-  } else if (platform === 'TikTok') {
-    return `
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
-        <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" stroke="#ff4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    `;
-  }
-  return '';
+    if (platform === 'Instagram') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>`;
+    if (platform === 'TikTok') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" stroke="#ff4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    return '';
 }
 
-// --- PASSWORD MANAGEMENT ---
-function openPasswordsModal() {
-  togglePasswordsModal(true);
-  renderPasswords();
-}
-
-function togglePasswordsModal(show) {
-  const modal = document.getElementById('passwords-modal');
-  if (show) modal.classList.remove('hidden');
-  else modal.classList.add('hidden');
-}
-
+function openPasswordsModal() { togglePasswordsModal(true); renderPasswords(); }
+function togglePasswordsModal(show) { const modal = document.getElementById('passwords-modal'); if (show) modal.classList.remove('hidden'); else modal.classList.add('hidden'); }
 function renderPasswords() {
-  const container = document.getElementById('passwords-container');
-  container.innerHTML = '';
-  
-  const users = Object.keys(passwordsData);
-  
-  if (users.length === 0) {
-      container.innerHTML = `
-      <div style="text-align: center; padding: 40px 20px; color: #666;">
-        <p>No passwords found.</p>
-        <p style="font-size: 12px; margin-top: 10px;">Check 'passwords log' collection.</p>
-      </div>`;
-      return;
-  }
-
-  users.forEach(user => {
-    const userSection = document.createElement('div');
-    userSection.style.marginBottom = '30px';
-    
-    const userHeader = document.createElement('h4');
-    userHeader.textContent = `User : ${user}`;
-    userHeader.style.color = '#ff4444';
-    userHeader.style.marginBottom = '15px';
-    userHeader.style.fontSize = '16px';
-    userHeader.style.borderBottom = '1px solid #333';
-    userHeader.style.paddingBottom = '5px';
-    
-    userSection.appendChild(userHeader);
-    
-    const platforms = ['Instagram', 'TikTok'];
-    
-    platforms.forEach(platform => {
-      if (!passwordsData[user][platform] || passwordsData[user][platform].length === 0) return;
-      
-      const platformProfiles = passwordsData[user][platform];
-      
-      platformProfiles.forEach(profileData => {
-        const profileDiv = document.createElement('div');
-        profileDiv.className = 'password-entry';
-        
-        const logoDiv = document.createElement('div');
-        logoDiv.className = 'platform-logo';
-        logoDiv.innerHTML = getPlatformLogo(platform);
-        profileDiv.appendChild(logoDiv);
-        
-        const profileInfo = document.createElement('div');
-        profileInfo.className = 'password-info';
-        
-        const profileName = document.createElement('span');
-        profileName.className = 'profile-label';
-        profileName.textContent = `${profileData.profileName || 'Not set'}`;
-        
-        const sep = document.createElement('span');
-        sep.innerText = " - ";
-        sep.style.color = "#666";
-
-        const passwordSpan = document.createElement('span');
-        passwordSpan.className = 'password-text';
-        passwordSpan.textContent = profileData.password || '******';
-        
-        profileInfo.appendChild(profileName);
-        profileInfo.appendChild(sep);
-        profileInfo.appendChild(passwordSpan);
-        profileDiv.appendChild(profileInfo);
-        
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-password-btn';
-        copyBtn.innerText = "COPY";
-        copyBtn.onclick = () => copyPassword(profileData.password);
-        profileDiv.appendChild(copyBtn);
-        
-        userSection.appendChild(profileDiv);
-      });
+    const container = document.getElementById('passwords-container'); container.innerHTML = '';
+    const users = Object.keys(passwordsData);
+    if (users.length === 0) { container.innerHTML = `<p style="text-align:center;color:#666;">No passwords found.</p>`; return; }
+    users.forEach(user => {
+        const userSection = document.createElement('div'); userSection.style.marginBottom = '30px';
+        const userHeader = document.createElement('h4'); userHeader.textContent = `User : ${user}`; userHeader.style.color = '#ff4444'; userHeader.style.marginBottom = '15px'; userHeader.style.borderBottom = '1px solid #333'; userSection.appendChild(userHeader);
+        ['Instagram', 'TikTok'].forEach(platform => {
+            if (!passwordsData[user][platform]) return;
+            passwordsData[user][platform].forEach(profileData => {
+                const div = document.createElement('div'); div.className = 'password-entry';
+                div.innerHTML = `<div class="platform-logo">${getPlatformLogo(platform)}</div><div class="password-info"><span class="profile-label">${profileData.profileName||'Not set'}</span><span style="color:#666"> - </span><span class="password-text">${profileData.password||'******'}</span></div><button class="copy-password-btn" onclick="navigator.clipboard.writeText('${profileData.password}')">COPY</button>`;
+                userSection.appendChild(div);
+            });
+        });
+        container.appendChild(userSection);
     });
-    
-    container.appendChild(userSection);
-  });
 }
 
-function copyPassword(password) {
-  if (!password) {
-    showToast('No password to copy', 'error');
-    return;
-  }
-  copyLink(password);
-}
-
-// --- PWA INSTALLATION LOGIC ---
 let deferredPrompt;
-
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
-            .then(reg => console.log('Service Worker Registered'))
-            .catch(err => console.log('Service Worker Error:', err));
-    });
-}
-
 window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    
+    e.preventDefault(); deferredPrompt = e;
     const homeBtn = document.getElementById('install-container-home');
     const settingsBtn = document.getElementById('install-container-settings');
-    
     if(homeBtn) homeBtn.classList.remove('hidden');
     if(settingsBtn) settingsBtn.classList.remove('hidden');
 });
-
 async function installPWA() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response: ${outcome}`);
     deferredPrompt = null;
-    
     if(outcome === 'accepted'){
         document.getElementById('install-container-home').classList.add('hidden');
         document.getElementById('install-container-settings').classList.add('hidden');
     }
 }
-
-window.addEventListener('appinstalled', () => {
-    document.getElementById('install-container-home').classList.add('hidden');
-    document.getElementById('install-container-settings').classList.add('hidden');
-});

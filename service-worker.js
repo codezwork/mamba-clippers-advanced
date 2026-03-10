@@ -1,10 +1,12 @@
-//
-const CACHE_NAME = 'mamba-clips-v2-firebase'; // Updated version
+// Change the version name completely to isolate the beta cache
+const CACHE_NAME = 'elite-mamba-clippers'; 
+
 const ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
   '/script.js',
+  '/smm-script.js', // Make sure to explicitly cache your new SMM script!
   '/manifest.json'
 ];
 

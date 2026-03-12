@@ -194,7 +194,7 @@ async function loadGlobalSettings() {
             
             const daysLeft = Math.max(0, Math.ceil((targetDateMs - Date.now()) / (1000 * 60 * 60 * 24)));
             
-            document.getElementById('legacy-revenue-amount').innerText = betaRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('beta-revenue-amount').innerText = betaRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('beta-days-left').innerText = daysLeft;
         }
         const passwordsSnapshot = await db.collection('passwords log').get();
@@ -236,7 +236,7 @@ async function updateLegacyRevenue() {
             betaRevenue: val
         });
         betaRevenue = val;
-        document.getElementById('legacy-revenue-amount').innerText = betaRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('beta-revenue-amount').innerText = betaRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         showToast('Revenue Updated', 'success');
     } catch (e) {
         console.error(e);

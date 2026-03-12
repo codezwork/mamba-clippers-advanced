@@ -345,7 +345,11 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('service-worker.js')
-                .then(reg => console.log('SW registered'))
+                .then(reg => {
+                    console.log('SW registered');
+                    // NEW: Force the browser to check for an app update in the background
+                    reg.update();
+                })
                 .catch(err => console.log('SW error:', err));
         });
     }

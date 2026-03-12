@@ -52,6 +52,26 @@ function setSmmMode(e, videoId, mode) {
     }
 }
 
+// NEW: Connects the Custom Qty Input seamlessly to our main submit function
+async function submitCustomSmm(e, videoId, videoLink, btnElement) {
+    e.stopPropagation();
+    
+    const inputEl = document.getElementById(`custom-qty-${videoId}`);
+    const quantity = parseInt(inputEl.value);
+    
+    if (!quantity || quantity <= 0) {
+        showToast("Enter a valid quantity", "error");
+        return;
+    }
+    
+    // Process it through our existing order submission
+    await submitSmmOrder(e, videoId, videoLink, quantity, btnElement);
+    
+    // Clear input after submission
+    inputEl.value = '';
+}
+
+
 // Handles the Order Submission based on toggled states
 async function submitSmmOrder(e, videoId, videoLink, quantity, btnElement) {
     e.stopPropagation();
@@ -70,9 +90,16 @@ async function submitSmmOrder(e, videoId, videoLink, quantity, btnElement) {
     if (provider === 'smmPanelOne' && mode === 'views') { serviceId = '8429'; serviceName = 'Views (O)'; }
     if (provider === 'smmPanelOne' && mode === 'likes') { serviceId = '12981'; serviceName = 'Likes (O)'; }
 
-    // Instant UI Feedback on the specific button clicked
-    const originalText = btnElement.innerText;
-    btnElement.innerText = "ORDERING...";
+    // Instant UI Feedback (Now supports both Text Buttons and SVG Arrow buttons)
+    const originalContent = btnElement.innerHTML;
+    
+    if (btnElement.innerText.trim()) {
+        btnElement.innerText = "ORDERING...";
+    } else {
+        // If it's an icon button, use a spinner symbol temporarily
+        btnElement.innerHTML = "⏳";
+    }
+    
     btnElement.disabled = true;
     btnElement.classList.add('btn-loading');
 
@@ -110,7 +137,7 @@ async function submitSmmOrder(e, videoId, videoLink, quantity, btnElement) {
         showToast("Failed to place order.", "error");
     } finally {
         // Always revert the button back so it can be clicked again
-        btnElement.innerText = originalText;
+        btnElement.innerHTML = originalContent;
         btnElement.disabled = false;
         btnElement.classList.remove('btn-loading');
     }

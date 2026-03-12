@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#ff4444">
+    <meta name="theme-color" content="#2ecc71">
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script> 
@@ -16,12 +16,10 @@
 <body>
 
     <section id="splash-view" class="app-view active" style="position: fixed; top:0; left:0; width:100%; height:100vh; z-index: 20000; background: #121212; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.8s ease-out;">
-        
         <div class="logo-wrapper">
             <img src="icon-512.png" alt="Mamba Beta Logo" class="logo-image">
             <div class="glass-reflection"></div>
         </div>
-        
     </section>
 
     <section id="login-view" class="app-view active" style="position: fixed; top:0; left:0; width:100%; height:100vh; z-index: 9999; background: #121212; display: flex; align-items: center; justify-content: center;">
@@ -40,11 +38,14 @@
     <section id="home-view" class="app-view active">
         <div class="container">
             <div class="hero-content" style="padding-top: 60px; text-align: center;">
-                <h1>MAMBA <span class="highlight">CLIPPERS</span></h1>
+                <h1>ELITE <span class="highlight">CLIPPERS</span></h1>
                 
                 <div id="legacy-revenue-container" style="margin-bottom: 40px; cursor: pointer;" onclick="openLegacyModal()">
-                    <p style="color: #666; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;">Total Generated Revenue</p>
-                    <h2 id="legacy-revenue-amount" style="font-size: 28px; color: #2ecc71; font-family: monospace;">₹0.00</h2>
+                    <p style="color: #666; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px;">ELITE REVENUE TRACKER</p>
+                    <h2 style="font-size: 28px; color: #2ecc71; font-family: monospace;">
+                        $<span id="beta-revenue-amount">0.00</span> / $6000
+                    </h2>
+                    <p style="color: #aaa; font-size: 12px; margin-top: 5px; font-weight: bold;">in <span id="beta-days-left">48</span> days</p>
                 </div>
             </div>
             
@@ -132,7 +133,7 @@
             
             <div style="text-align: center; margin-bottom: 40px;">
                 <button onclick="openLegacyModal()" style="background: none; border: none; color: #333; font-size: 10px; cursor: pointer;">
-                    UPDATE LEGACY DATA
+                    UPDATE BETA TRACKER
                 </button>
             </div>
         </div>
@@ -169,7 +170,7 @@
                 </div>
             
             <button class="cta-button" onclick="openProfileSettings()" style="width: 100%; margin-top: 30px; border-style: dashed;">
-                + MANAGE PROFILES
+                + MANAGE PROFILES & CPM
             </button>
         </div>
     </section>
@@ -256,7 +257,7 @@
     <div id="legacy-modal" class="modal-overlay hidden">
         <div class="modal-content testimonial-card">
             <h3>UPDATE REVENUE</h3>
-            <p style="color: #aaa; font-size: 12px; margin-bottom: 15px;">Enter the total revenue generated so far.</p>
+            <p style="color: #aaa; font-size: 12px; margin-bottom: 15px;">Enter the beta revenue generated so far.</p>
             <input type="number" id="legacy-input" placeholder="Amount ($)" class="mamba-input">
             
             <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -307,7 +308,7 @@
                 </button>
             </div>
 
-            <h4 style="color: #aaa; margin-bottom: 15px; font-weight: 500;">Edit Profile Names</h4>
+            <h4 style="color: #aaa; margin-bottom: 15px; font-weight: 500;">Edit Profile Names & CPM</h4>
             
             <div id="dynamic-profile-inputs" style="max-height: 250px; overflow-y: auto; padding-right: 5px; margin-bottom: 10px;"></div>
             

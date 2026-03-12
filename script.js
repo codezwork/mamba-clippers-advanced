@@ -41,12 +41,12 @@ auth.onAuthStateChanged((user) => {
         }
         
         loadGlobalSettings(); 
-        // PREMIUM FADE OUT: Let the animation play a bit, then fade out smoothly
+        // PREMIUM FADE OUT
         setTimeout(() => { 
-            splash.style.opacity = '0'; // Trigger CSS fade
+            splash.style.opacity = '0';
             setTimeout(() => { 
-                splash.classList.add('hidden'); // Remove from DOM after fade completes
-                splash.style.opacity = '1'; // Reset state
+                splash.classList.add('hidden');
+                splash.style.opacity = '1';
             }, 800); 
         }, 1200);
 
@@ -112,11 +112,12 @@ let currentProfileName = "";
 
 let isLoading = false;
 let profileConfig = {};
+let cpmConfig = {}; // NEW: Parallel state for Custom CPMs
 let passwordsData = {};
 let unsubscribeVideos = null;
 let currentEditingId = null;
 let currentSortOrder = "newest"; 
-let legacyRevenue = 0;
+let betaRevenue = 0; // NEW: Isolated Beta Revenue variable
 
 let isSelectionMode = false;
 let selectedVideoIds = new Set();
@@ -179,10 +180,22 @@ async function loadGlobalSettings() {
         if (settingsDoc.exists) {
             const data = settingsDoc.data();
             profileConfig = data.profileConfig || {};
-            legacyRevenue = data.totalLegacyRevenue || 0;
+            cpmConfig = data.betaCpmConfig || {}; // Load isolated CPM dict
             
-            document.getElementById('legacy-revenue-amount').innerText = 
-              `₹${legacyRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            // New Beta Legacy Logic
+            betaRevenue = data.betaRevenue || 0;
+            let targetDateMs = data.betaTargetDate;
+            
+            // If the target date was never set (first load of beta), set it to 48 days from now
+            if (!targetDateMs) {
+                targetDateMs = Date.now() + (48 * 24 * 60 * 60 * 1000);
+                db.collection('settings').doc('global').update({ betaTargetDate: targetDateMs });
+            }
+            
+            const daysLeft = Math.max(0, Math.ceil((targetDateMs - Date.now()) / (1000 * 60 * 60 * 24)));
+            
+            document.getElementById('legacy-revenue-amount').innerText = betaRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('beta-days-left').innerText = daysLeft;
         }
         const passwordsSnapshot = await db.collection('passwords log').get();
         passwordsData = {};
@@ -197,7 +210,7 @@ async function loadGlobalSettings() {
 function toggleLegacyModal(show) {
     const modal = document.getElementById('legacy-modal');
     if (show) {
-        document.getElementById('legacy-input').value = legacyRevenue;
+        document.getElementById('legacy-input').value = betaRevenue;
         modal.classList.remove('hidden');
     } else {
         modal.classList.add('hidden');
@@ -220,17 +233,24 @@ async function updateLegacyRevenue() {
     
     try {
         await db.collection('settings').doc('global').update({
-            totalLegacyRevenue: val
+            betaRevenue: val
         });
-        legacyRevenue = val;
-        document.getElementById('legacy-revenue-amount').innerText = 
-          `₹${legacyRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        betaRevenue = val;
+        document.getElementById('legacy-revenue-amount').innerText = betaRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         showToast('Revenue Updated', 'success');
     } catch (e) {
         console.error(e);
         showToast('Update Failed', 'error');
     }
     showLoading(false);
+}
+
+// Helper to fetch the custom CPM
+function getProfileCpm(user, platform, profileKey) {
+    if (cpmConfig[user] && cpmConfig[user][platform] && cpmConfig[user][platform][profileKey]) {
+        return parseFloat(cpmConfig[user][platform][profileKey]);
+    }
+    return 1.50; // Default CPM if none set
 }
 
 async function openProfileSelection(user, platform) {
@@ -259,17 +279,11 @@ async function openProfileSelection(user, platform) {
 
 function togglePlatform() {
     if (!currentUser) return;
-    
-    // Swap the platform
     const newPlatform = currentPlatform === 'TikTok' ? 'Instagram' : 'TikTok';
-    
-    // Add a quick little visual feedback animation
     const iconDiv = document.getElementById('ps-platform-icon');
     iconDiv.style.transform = 'scale(0.8)';
-    
     setTimeout(() => {
         iconDiv.style.transform = 'scale(1)';
-        // Re-run the selection logic with the new platform
         openProfileSelection(currentUser, newPlatform);
     }, 150);
 }
@@ -282,15 +296,16 @@ async function fetchPlatformStats() {
             .where('platform', '==', currentPlatform)
             .get();
         
-        let totalViews = 0;
+        let totalRevenue = 0;
         snapshot.forEach(doc => {
             const data = doc.data();
-            totalViews += (data.views ? parseInt(data.views) : 0);
+            const views = data.views ? parseInt(data.views) : 0;
+            const currentCpm = getProfileCpm(data.person, data.platform, data.profile);
+            totalRevenue += (views / 1000) * currentCpm;
         });
         
-        const revenue = (totalViews / 1000) * 2.25;
         document.getElementById('platform-total-revenue').innerText = 
-            `$${revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            `$${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             
     } catch (e) {
         console.error(e);
@@ -421,23 +436,23 @@ async function fetchVideosForProfile() {
 }
 
 function updateHeaderStats() {
-    let totalViews = 0;
+    let totalRevenue = 0;
     let totalVideos = appData.length;
     let approvedCount = 0;
     let rejectedCount = 0;
     let pendingCount = 0;
     
     appData.forEach(v => {
-        totalViews += (v.views ? parseInt(v.views) : 0);
+        const views = v.views ? parseInt(v.views) : 0;
+        const currentCpm = getProfileCpm(v.person, v.platform, v.profile);
+        totalRevenue += (views / 1000) * currentCpm;
+        
         if (v.status === 'Approved') approvedCount++;
         else if (v.status === 'Rejected') rejectedCount++;
         else pendingCount++;
     });
 
-    const revenue = (totalViews / 1000) * 2.25;
-
-    document.getElementById('stat-revenue').innerText = `$${revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    // Now displaying total videos (clips) instead of average views
+    document.getElementById('stat-revenue').innerText = `$${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     document.getElementById('stat-total-clips').innerText = totalVideos.toString();
 
     const pApproved = totalVideos > 0 ? (approvedCount / totalVideos) * 100 : 0;
@@ -495,7 +510,8 @@ function createVideoRow(video) {
         : '';
 
     const rawViews = video.views ? parseInt(video.views) : 0;
-    const estimatedRevenue = (rawViews / 1000) * 1.5;
+    const currentCpm = getProfileCpm(video.person, video.platform, video.profile);
+    const estimatedRevenue = (rawViews / 1000) * currentCpm;
 
     const revenueBadge = estimatedRevenue > 0 
         ? `<span style="color: #ffa500; font-size: 14px; margin-left: 24px; font-weight: bold; margin-bottom: 4px">
@@ -588,12 +604,8 @@ function createVideoRow(video) {
             <div id="smm-panel-${video.id}" class="smm-panel hidden" data-provider="smmRaja" data-mode="views">
                 
                 <div class="smm-toggle-group">
-                    <button class="smm-toggle-btn active" onclick="setSmmProvider(event, '${video.id}', 'smmRaja')" id="prov-raja-${video.id}" title="SMM Raja">
-                        R
-                    </button>
-                    <button class="smm-toggle-btn" onclick="setSmmProvider(event, '${video.id}', 'smmPanelOne')" id="prov-one-${video.id}" title="SMM Panel One">
-                        O
-                    </button>
+                    <button class="smm-toggle-btn active" onclick="setSmmProvider(event, '${video.id}', 'smmRaja')" id="prov-raja-${video.id}" title="SMM Raja">R</button>
+                    <button class="smm-toggle-btn" onclick="setSmmProvider(event, '${video.id}', 'smmPanelOne')" id="prov-one-${video.id}" title="SMM Panel One">O</button>
                 </div>
             
                 <div class="smm-toggle-group">
@@ -615,6 +627,13 @@ function createVideoRow(video) {
                     <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 10, this)">10</button>
                     <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 30, this)">30</button>
                     <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 100, this)">100</button>
+                </div>
+                
+                <div class="smm-custom-qty">
+                    <input type="number" id="custom-qty-${video.id}" class="smm-custom-input" placeholder="Qty">
+                    <button class="smm-custom-btn" onclick="submitCustomSmm(event, '${video.id}', '${video.link}', this)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                    </button>
                 </div>
                 
                 <div class="smm-log" id="smm-log-${video.id}">
@@ -895,13 +914,23 @@ function openProfileSettings() {
     profiles.forEach(p => {
         const row = document.createElement('div');
         row.style.display = 'flex'; row.style.gap = '8px'; row.style.alignItems = 'center'; row.style.marginBottom = '10px'; row.className = 'profile-input-row';
+        
+        // Profile Name Input
         const input = document.createElement('input');
         input.type = 'text'; input.value = p.name; input.dataset.dbkey = p.dbKey; input.className = 'mamba-input'; input.style.marginTop = '0'; 
+        
+        // NEW CPM Input
+        const cpmInput = document.createElement('input');
+        cpmInput.type = 'number'; cpmInput.step = '0.01'; cpmInput.value = getProfileCpm(currentUser, currentPlatform, p.dbKey);
+        cpmInput.dataset.dbkey = p.dbKey; cpmInput.className = 'mamba-input cpm-input'; 
+        cpmInput.style.marginTop = '0'; cpmInput.style.width = '80px'; cpmInput.style.minWidth = '70px'; cpmInput.title = "CPM ($ per 1K views)";
+        
         const delBtn = document.createElement('button');
         delBtn.className = 'icon-btn delete-btn'; delBtn.style.marginTop = '0'; delBtn.style.minWidth = '38px';
         delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
         delBtn.onclick = () => row.remove();
-        row.appendChild(input); row.appendChild(delBtn); container.appendChild(row);
+        
+        row.appendChild(input); row.appendChild(cpmInput); row.appendChild(delBtn); container.appendChild(row);
     });
     modal.classList.remove('hidden');
 }
@@ -916,42 +945,76 @@ function addNewProfileField() {
     const newIndex = maxIndex + 1;
     const row = document.createElement('div');
     row.style.display = 'flex'; row.style.gap = '8px'; row.style.alignItems = 'center'; row.style.marginBottom = '10px'; row.className = 'profile-input-row';
+    
+    // Profile Name Input
     const input = document.createElement('input');
     input.type = 'text'; input.placeholder = `New Profile Name`; input.dataset.dbkey = `profile${newIndex}`; input.className = 'mamba-input'; input.style.marginTop = '0';
+    
+    // NEW CPM Input Default
+    const cpmInput = document.createElement('input');
+    cpmInput.type = 'number'; cpmInput.step = '0.01'; cpmInput.value = '1.50';
+    cpmInput.dataset.dbkey = `profile${newIndex}`; cpmInput.className = 'mamba-input cpm-input'; 
+    cpmInput.style.marginTop = '0'; cpmInput.style.width = '80px'; cpmInput.style.minWidth = '70px';
+    
     const delBtn = document.createElement('button');
     delBtn.className = 'icon-btn delete-btn'; delBtn.style.marginTop = '0'; delBtn.style.minWidth = '38px';
     delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
     delBtn.onclick = () => row.remove();
-    row.appendChild(input); row.appendChild(delBtn); container.appendChild(row); input.focus();
+    
+    row.appendChild(input); row.appendChild(cpmInput); row.appendChild(delBtn); container.appendChild(row); input.focus();
 }
 
 async function saveProfileNames() {
     const rows = document.querySelectorAll('.profile-input-row');
-    const updates = {}; const localConfig = {}; const activeKeys = new Set();
+    const updates = {}; const localConfig = {}; 
+    const localCpmConfig = {}; const activeKeys = new Set();
     let hasError = false;
     const existingProfiles = getProfileData();
     const existingKeys = existingProfiles.map(p => p.dbKey);
+    
     rows.forEach((row) => {
-        const input = row.querySelector('input');
-        const val = input.value.trim();
-        const dbKey = input.dataset.dbkey;
+        // Handle names
+        const nameInput = row.querySelectorAll('input')[0];
+        const val = nameInput.value.trim();
+        const dbKey = nameInput.dataset.dbkey;
+        
+        // Handle CPM
+        const cpmInput = row.querySelectorAll('.cpm-input')[0];
+        const cpmVal = parseFloat(cpmInput.value) || 1.50;
+
         if (!val) hasError = true;
         activeKeys.add(dbKey);
+        
         updates[`profileConfig.${currentUser}.${currentPlatform}.${dbKey}`] = val;
+        updates[`betaCpmConfig.${currentUser}.${currentPlatform}.${dbKey}`] = cpmVal; // Parallel save to firebase
+        
         localConfig[dbKey] = val;
+        localCpmConfig[dbKey] = cpmVal;
     });
+    
     if (hasError) { showToast('All fields must be filled', 'error'); return; }
+    
     existingKeys.forEach(key => {
         if (!activeKeys.has(key)) {
             updates[`profileConfig.${currentUser}.${currentPlatform}.${key}`] = firebase.firestore.FieldValue.delete();
+            updates[`betaCpmConfig.${currentUser}.${currentPlatform}.${key}`] = firebase.firestore.FieldValue.delete();
         }
     });
     showLoading(true);
+    
     try {
         await db.collection('settings').doc('global').update(updates);
+        
+        // Update Local Configurations instantly
         if (!profileConfig[currentUser]) profileConfig[currentUser] = {};
         profileConfig[currentUser][currentPlatform] = localConfig;
+        
+        if (!cpmConfig[currentUser]) cpmConfig[currentUser] = {};
+        cpmConfig[currentUser][currentPlatform] = localCpmConfig;
+        
         if(document.getElementById('profile-select-view').classList.contains('active')) renderProfileSelectionList();
+        if(document.getElementById('dashboard-view').classList.contains('active')) renderDashboard(); 
+        
         showToast('Saved!', 'success'); toggleProfileSettingsModal(false);
     } catch (error) { console.error(error); showToast('Error saving.', 'error'); }
     showLoading(false);

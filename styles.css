@@ -702,3 +702,75 @@
     0% { left: -100%; }
     20%, 100% { left: 200%; }
 }
+
+/* ==========================================================================
+   NEW: Custom CPM Inputs & Custom SMM Field
+   ========================================================================== */
+
+/* Custom Input inside SMM Panel */
+.smm-custom-qty {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.smm-custom-input {
+    background: transparent;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    width: 60px;
+    outline: none;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.smm-custom-input:focus {
+    border-color: #2ecc71;
+    background: rgba(255,255,255,0.02);
+}
+
+/* Remove default number arrows on Webkit browsers for sleekness */
+.smm-custom-input::-webkit-outer-spin-button,
+.smm-custom-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.smm-custom-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Custom Upload Button (Up Arrow) */
+.smm-custom-btn {
+    background: transparent;
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.smm-custom-btn:hover {
+    background: #2ecc71;
+    color: #121212;
+}
+
+.smm-custom-btn.btn-loading {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: #2ecc71;
+    color: #2ecc71;
+    cursor: wait;
+}
+
+/* Making sure settings inputs stay responsive */
+@media (max-width: 480px) {
+    .smm-custom-input { width: 50px; }
+    .cpm-input { min-width: 60px !important; width: 60px !important; }
+}

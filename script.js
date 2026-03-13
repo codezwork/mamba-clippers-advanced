@@ -246,10 +246,20 @@ async function updateLegacyRevenue() {
 }
 
 // Helper to fetch the custom CPM
+// Helper to fetch the custom CPM
+// Helper to fetch the custom CPM
 function getProfileCpm(user, platform, profileKey) {
-    if (cpmConfig[user] && cpmConfig[user][platform] && cpmConfig[user][platform][profileKey]) {
-        return parseFloat(cpmConfig[user][platform][profileKey]);
+    if (!profileKey) return 1.50;
+    
+    // BULLETPROOF FIX: Force lowercase and strip ALL spaces 
+    // This handles "Profile 1", "Profile1", "profile 1", etc., and turns them all into "profile1"
+    let dbKey = String(profileKey).toLowerCase().replace(/\s+/g, '');
+
+    // Check if the custom CPM exists using the normalized dbKey
+    if (cpmConfig[user] && cpmConfig[user][platform] && cpmConfig[user][platform][dbKey] !== undefined) {
+        return parseFloat(cpmConfig[user][platform][dbKey]);
     }
+    
     return 1.50; // Default CPM if none set
 }
 

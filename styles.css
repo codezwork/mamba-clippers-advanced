@@ -426,7 +426,10 @@
   .dropdown-container { position: relative; display: inline-block; }
   
   .dropdown-menu {
-      position: absolute; top: 40px;
+      position: absolute; 
+      top: 40px;
+      right: 0;        /* NEW: Anchors the menu to the right edge */
+      left: auto;      /* NEW: Prevents it from stretching to the left edge */
       background-color: #1a1a1a;
       min-width: 140px;
       box-shadow: 0 8px 16px rgba(0,0,0,0.5);

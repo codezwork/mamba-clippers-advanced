@@ -142,3 +142,67 @@ async function submitSmmOrder(e, videoId, videoLink, quantity, btnElement) {
         btnElement.classList.remove('btn-loading');
     }
 }
+
+// NEW: 24H Hardcoded Automation Protocol
+async function fireAutomation(e, videoId, videoLink, btnElement) {
+    e.stopPropagation();
+
+    // --- NEW: THE SAFEGUARD CONFIRMATION ---
+    if (!confirm("Initiate 24H Automation? This will send 400 views over intervals of 6 hours and lock this button for 24 hours.")) {
+        return; // Stops the function immediately if they click "Cancel"
+    }
+    // ---------------------------------------
+    
+    // Hardcoded Payload for 24H Drip Feed
+    const payload = {
+        link: videoLink,
+        service: "1224",    // SMM Raja Views
+        quantity: 400,      // Total: 400 (4 runs of 100 views)
+        runs: 4,            // 4 executions
+        interval: 360,      // 6 Hours in minutes
+        provider: "smmRaja" // Defaults to SMM Raja backend logic
+    };
+
+    const originalContent = btnElement.innerHTML;
+    btnElement.innerHTML = "⏳";
+    btnElement.disabled = true;
+    btnElement.classList.add('btn-loading');
+
+    try {
+        const response = await fetch(SMM_BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok && !data.error) {
+            showToast("Automation active for 24 Hours!", "success");
+            
+            const now = new Date();
+            const dateStr = now.getDate() + ' - ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            
+            // Lock the button in Firestore by saving the server timestamp
+            await db.collection('videos').doc(videoId).update({
+                lastAutoOrderAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastSmmOrder: `${dateStr} (AUTO 24H Drip-Feed)`
+            });
+            
+            // The row will automatically re-render and lock the button because of your snapshot listener!
+            
+        } else {
+            // Catch hidden SMM Raja errors
+            showToast(`API Rejected: ${data.error || 'Unknown Error'}`, "error");
+            btnElement.innerHTML = originalContent;
+            btnElement.disabled = false;
+        }
+    } catch (error) {
+        console.error(error);
+        showToast("Network Error: Could not reach backend", "error");
+        btnElement.innerHTML = originalContent;
+        btnElement.disabled = false;
+    } finally {
+        btnElement.classList.remove('btn-loading');
+    }
+}

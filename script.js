@@ -529,23 +529,37 @@ function createVideoRow(video) {
         </span>`
         : '';
 
-    // --- NEW LOGIC: Calculate 24H Cooldown ---
-    let autoDisabled = false;
-    let autoClass = "";
-    let autoTitle = "Start 24H Automation (4 Runs)";
+    // --- NEW LOGIC: Separate 24H Cooldowns for Views and Likes ---
+    let viewsAutoDisabled = false;
+    let viewsAutoClass = "";
+    let viewsAutoTitle = "Start 24H Automation (4 Runs)";
 
-    if (video.lastAutoOrderAt) {
-        // Convert Firebase timestamp to JS milliseconds
-        const lastOrderTime = video.lastAutoOrderAt.toDate ? video.lastAutoOrderAt.toDate().getTime() : video.lastAutoOrderAt;
-        const hoursPassed = (Date.now() - lastOrderTime) / (1000 * 60 * 60);
+    if (video.lastAutoViewsAt) {
+        const lastViewsTime = video.lastAutoViewsAt.toDate ? video.lastAutoViewsAt.toDate().getTime() : video.lastAutoViewsAt;
+        const hoursPassed = (Date.now() - lastViewsTime) / (1000 * 60 * 60);
         
         if (hoursPassed < 24) {
-            autoDisabled = true;
-            autoClass = "disabled-auto";
-            const hoursLeft = Math.ceil(24 - hoursPassed);
-            autoTitle = `Cooldown Active: ${hoursLeft}H remaining`;
+            viewsAutoDisabled = true;
+            viewsAutoClass = "disabled-auto";
+            viewsAutoTitle = `Cooldown Active: ${Math.ceil(24 - hoursPassed)}H remaining`;
         }
     }
+
+    let likesAutoDisabled = false;
+    let likesAutoClass = "";
+    let likesAutoTitle = "Start 24H Automation (4 Runs)";
+
+    if (video.lastAutoLikesAt) {
+        const lastLikesTime = video.lastAutoLikesAt.toDate ? video.lastAutoLikesAt.toDate().getTime() : video.lastAutoLikesAt;
+        const hoursPassed = (Date.now() - lastLikesTime) / (1000 * 60 * 60);
+        
+        if (hoursPassed < 24) {
+            likesAutoDisabled = true;
+            likesAutoClass = "disabled-auto";
+            likesAutoTitle = `Cooldown Active: ${Math.ceil(24 - hoursPassed)}H remaining`;
+        }
+    }
+    // --------------------------------------------------------------
 
     return `
         <div class="video-item ${isSelected ? 'selected' : ''}" 
@@ -629,46 +643,68 @@ function createVideoRow(video) {
                 </div>
             </div>
 
-            <div id="smm-panel-${video.id}" class="smm-panel hidden" data-provider="smmRaja" data-mode="views">
+            <div id="smm-panel-${video.id}" class="smm-panel hidden" data-provider="smmRaja" data-mode="views" data-exec="auto">
                 
-                <div class="smm-toggle-group">
-                    <button class="smm-toggle-btn active" onclick="setSmmProvider(event, '${video.id}', 'smmRaja')" id="prov-raja-${video.id}" title="SMM Raja">R</button>
-                    <button class="smm-toggle-btn" onclick="setSmmProvider(event, '${video.id}', 'smmPanelOne')" id="prov-one-${video.id}" title="SMM Panel One">O</button>
-                </div>
-            
-                <div class="smm-toggle-group">
-                    <button class="smm-toggle-btn active" onclick="setSmmMode(event, '${video.id}', 'views')" id="mode-views-${video.id}" title="Views">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    </button>
-                    <button class="smm-toggle-btn" onclick="setSmmMode(event, '${video.id}', 'likes')" id="mode-likes-${video.id}" title="Likes">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                    </button>
-                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; width: 100%; margin-bottom: 8px;">
+                    <div class="smm-toggle-group">
+                        <button class="smm-toggle-btn active" onclick="setSmmProvider(event, '${video.id}', 'smmRaja')" id="prov-raja-${video.id}" title="SMM Raja">R</button>
+                        <button class="smm-toggle-btn" onclick="setSmmProvider(event, '${video.id}', 'smmPanelOne')" id="prov-one-${video.id}" title="SMM Panel One">O</button>
+                    </div>
                 
-                <button class="standalone-auto-btn ${autoClass}" onclick="fireAutomation(event, '${video.id}', '${video.link}', this)" ${autoDisabled ? 'disabled' : ''} title="${autoTitle}">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span style="margin-left:4px">Auto</span>
-                </button>
-                
-                <div class="smm-quantities" id="quantities-views-${video.id}">
-                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 100, this)">100</button>
-                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 300, this)">300</button>
-                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 1000, this)">1000</button>
+                    <div class="smm-toggle-group">
+                        <button class="smm-toggle-btn active" onclick="setSmmMode(event, '${video.id}', 'views')" id="mode-views-${video.id}" title="Views">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                        <button class="smm-toggle-btn" onclick="setSmmMode(event, '${video.id}', 'likes')" id="mode-likes-${video.id}" title="Likes">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="smm-toggle-group">
+                        <button class="smm-toggle-btn active" onclick="setSmmExecMode(event, '${video.id}', 'auto')" id="exec-auto-${video.id}" title="Automatic (24H Drip-Feed)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f39c12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        </button>
+                        <button class="smm-toggle-btn" onclick="setSmmExecMode(event, '${video.id}', 'manual')" id="exec-manual-${video.id}" title="Manual (Instant Orders)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 13 14 8 9 3 14 12 23 21 14 16 9 11 14 11 3z"></path></svg>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="smm-quantities hidden" id="quantities-likes-${video.id}">
-                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 10, this)">10</button>
-                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 30, this)">30</button>
-                    <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 100, this)">100</button>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; width: 100%; align-items: center;">
+                    
+                    <div class="smm-quantities" id="quantities-views-auto-${video.id}">
+                        <button class="smm-qty-btn auto-qty-btn ${viewsAutoClass}" onclick="fireAutomation(event, '${video.id}', '${video.link}', 400, this)" ${viewsAutoDisabled ? 'disabled' : ''} title="${viewsAutoTitle}">400/24</button>
+                        <button class="smm-qty-btn auto-qty-btn ${viewsAutoClass}" onclick="fireAutomation(event, '${video.id}', '${video.link}', 600, this)" ${viewsAutoDisabled ? 'disabled' : ''} title="${viewsAutoTitle}">600/24</button>
+                        <button class="smm-qty-btn auto-qty-btn ${viewsAutoClass}" onclick="fireAutomation(event, '${video.id}', '${video.link}', 1000, this)" ${viewsAutoDisabled ? 'disabled' : ''} title="${viewsAutoTitle}">1000/24</button>
+                    </div>
+
+                    <div class="smm-quantities hidden" id="quantities-likes-auto-${video.id}">
+                        <button class="smm-qty-btn auto-qty-btn ${likesAutoClass}" onclick="fireAutomation(event, '${video.id}', '${video.link}', 40, this)" ${likesAutoDisabled ? 'disabled' : ''} title="${likesAutoTitle}">40/24</button>
+                        <button class="smm-qty-btn auto-qty-btn ${likesAutoClass}" onclick="fireAutomation(event, '${video.id}', '${video.link}', 60, this)" ${likesAutoDisabled ? 'disabled' : ''} title="${likesAutoTitle}">60/24</button>
+                        <button class="smm-qty-btn auto-qty-btn ${likesAutoClass}" onclick="fireAutomation(event, '${video.id}', '${video.link}', 100, this)" ${likesAutoDisabled ? 'disabled' : ''} title="${likesAutoTitle}">100/24</button>
+                    </div>
+
+                    <div class="smm-quantities hidden" id="quantities-views-manual-${video.id}">
+                        <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 100, this)">100</button>
+                        <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 300, this)">300</button>
+                        <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 1000, this)">1000</button>
+                    </div>
+
+                    <div class="smm-quantities hidden" id="quantities-likes-manual-${video.id}">
+                        <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 10, this)">10</button>
+                        <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 30, this)">30</button>
+                        <button class="smm-qty-btn" onclick="submitSmmOrder(event, '${video.id}', '${video.link}', 100, this)">100</button>
+                    </div>
+                    
+                    <div class="smm-custom-qty hidden" id="custom-qty-container-${video.id}">
+                        <input type="number" id="custom-qty-${video.id}" class="smm-custom-input" placeholder="Qty">
+                        <button class="smm-custom-btn" onclick="submitCustomSmm(event, '${video.id}', '${video.link}', this)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                        </button>
+                    </div>
                 </div>
-                
-                <div class="smm-custom-qty">
-                    <input type="number" id="custom-qty-${video.id}" class="smm-custom-input" placeholder="Qty">
-                    <button class="smm-custom-btn" onclick="submitCustomSmm(event, '${video.id}', '${video.link}', this)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-                    </button>
-                </div>
-                
-                <div class="smm-log" id="smm-log-${video.id}">
+
+                <div class="smm-log" id="smm-log-${video.id}" style="margin-top: 8px;">
                     Last: ${video.lastSmmOrder ? video.lastSmmOrder : 'Never'}
                 </div>
             </div>

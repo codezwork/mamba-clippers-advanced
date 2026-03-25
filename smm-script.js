@@ -28,27 +28,134 @@ function setSmmProvider(e, videoId, provider) {
     }
 }
 
-// Controls the Service Mode Toggle
+// Controls the Execution Mode Toggle (Auto vs Manual)
+function setSmmExecMode(e, videoId, exec) {
+    e.stopPropagation();
+    const panel = document.getElementById(`smm-panel-${videoId}`);
+    panel.dataset.exec = exec;
+
+    // Switch Icon Styles
+    document.getElementById(`exec-auto-${videoId}`).classList.toggle('active', exec === 'auto');
+    document.getElementById(`exec-manual-${videoId}`).classList.toggle('active', exec === 'manual');
+
+    // Read current service mode to know which grid to reveal
+    const mode = panel.dataset.mode; 
+
+    // Hide all grids initially
+    document.getElementById(`quantities-views-auto-${videoId}`).classList.add('hidden');
+    document.getElementById(`quantities-likes-auto-${videoId}`).classList.add('hidden');
+    document.getElementById(`quantities-views-manual-${videoId}`).classList.add('hidden');
+    document.getElementById(`quantities-likes-manual-${videoId}`).classList.add('hidden');
+    
+    // Toggle custom input container (Only in Manual)
+    const customContainer = document.getElementById(`custom-qty-container-${videoId}`);
+    if (exec === 'manual') customContainer.classList.remove('hidden');
+    else customContainer.classList.add('hidden');
+
+    // Show the active grid based on current states
+    document.getElementById(`quantities-${mode}-${exec}-${videoId}`).classList.remove('hidden');
+}
+
+// Controls the Service Mode Toggle (Upgraded to respect Execution Mode)
 function setSmmMode(e, videoId, mode) {
     e.stopPropagation();
     const panel = document.getElementById(`smm-panel-${videoId}`);
-    panel.dataset.mode = mode; // Save state to DOM
+    panel.dataset.mode = mode; 
+    const exec = panel.dataset.exec; 
 
-    // Reset Icon Toggles
     document.getElementById(`mode-views-${videoId}`).classList.remove('active');
     document.getElementById(`mode-likes-${videoId}`).classList.remove('active');
 
-    // Hide both quantity groups
-    document.getElementById(`quantities-views-${videoId}`).classList.add('hidden');
-    document.getElementById(`quantities-likes-${videoId}`).classList.add('hidden');
+    // Hide all grids
+    document.getElementById(`quantities-views-auto-${videoId}`).classList.add('hidden');
+    document.getElementById(`quantities-likes-auto-${videoId}`).classList.add('hidden');
+    document.getElementById(`quantities-views-manual-${videoId}`).classList.add('hidden');
+    document.getElementById(`quantities-likes-manual-${videoId}`).classList.add('hidden');
 
-    // Activate the right ones
+    // Activate right toggle & grid
     if (mode === 'views') {
         document.getElementById(`mode-views-${videoId}`).classList.add('active');
-        document.getElementById(`quantities-views-${videoId}`).classList.remove('hidden');
+        document.getElementById(`quantities-views-${exec}-${videoId}`).classList.remove('hidden');
     } else {
         document.getElementById(`mode-likes-${videoId}`).classList.add('active');
-        document.getElementById(`quantities-likes-${videoId}`).classList.remove('hidden');
+        document.getElementById(`quantities-likes-${exec}-${videoId}`).classList.remove('hidden');
+    }
+}
+
+// UPDATED: Dynamic 24H Automation Protocol
+async function fireAutomation(e, videoId, videoLink, totalQuantity, btnElement) {
+    e.stopPropagation();
+
+    // Read exact state to route the order perfectly
+    const panel = document.getElementById(`smm-panel-${videoId}`);
+    const provider = panel.dataset.provider;
+    const mode = panel.dataset.mode;
+    
+    let serviceId = '';
+    let serviceName = '';
+
+    if (provider === 'smmRaja' && mode === 'views') { serviceId = '1224'; serviceName = 'Views (R)'; }
+    if (provider === 'smmRaja' && mode === 'likes') { serviceId = '2150'; serviceName = 'Likes (R)'; }
+    if (provider === 'smmPanelOne' && mode === 'views') { serviceId = '8429'; serviceName = 'Views (O)'; }
+    if (provider === 'smmPanelOne' && mode === 'likes') { serviceId = '12981'; serviceName = 'Likes (O)'; }
+
+    // Dynamic Safeguard Warning
+    if (!confirm(`Initiate 24H Automation?\n\nThis will send ${totalQuantity} ${serviceName} (in 4 intervals of 6 hours).\n\nThis will lock the auto buttons for 24 hours.`)) {
+        return; 
+    }
+    
+    // Dynamic Payload
+    const payload = {
+        link: videoLink,
+        service: serviceId,
+        quantity: totalQuantity,
+        runs: 4,            
+        interval: 360,      
+        provider: provider
+    };
+
+    const originalContent = btnElement.innerHTML;
+    btnElement.innerHTML = "⏳";
+    btnElement.disabled = true;
+    btnElement.classList.add('btn-loading');
+
+    try {
+        const response = await fetch(SMM_BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok && !data.error) {
+            showToast("Automation active for 24 Hours!", "success");
+            
+            const now = new Date();
+            const dateStr = now.getDate() + ' - ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            const fullLogDetails = `${dateStr} (AUTO 24H: ${totalQuantity} ${serviceName})`;
+            
+            // DYNAMIC TIMESTAMP SELECTION
+            // Checks the current mode and writes to the correct database field
+            const timestampField = mode === 'views' ? 'lastAutoViewsAt' : 'lastAutoLikesAt';
+            
+            await db.collection('videos').doc(videoId).update({
+                [timestampField]: firebase.firestore.FieldValue.serverTimestamp(),
+                lastSmmOrder: fullLogDetails
+            });
+            
+        } else {
+            showToast(`API Rejected: ${data.error || 'Unknown Error'}`, "error");
+            btnElement.innerHTML = originalContent;
+            btnElement.disabled = false;
+        }
+    } catch (error) {
+        console.error(error);
+        showToast("Network Error: Could not reach backend", "error");
+        btnElement.innerHTML = originalContent;
+        btnElement.disabled = false;
+    } finally {
+        btnElement.classList.remove('btn-loading');
     }
 }
 
@@ -139,70 +246,6 @@ async function submitSmmOrder(e, videoId, videoLink, quantity, btnElement) {
         // Always revert the button back so it can be clicked again
         btnElement.innerHTML = originalContent;
         btnElement.disabled = false;
-        btnElement.classList.remove('btn-loading');
-    }
-}
-
-// NEW: 24H Hardcoded Automation Protocol
-async function fireAutomation(e, videoId, videoLink, btnElement) {
-    e.stopPropagation();
-
-    // --- NEW: THE SAFEGUARD CONFIRMATION ---
-    if (!confirm("Initiate 24H Automation? This will send 400 views over intervals of 6 hours and lock this button for 24 hours.")) {
-        return; // Stops the function immediately if they click "Cancel"
-    }
-    // ---------------------------------------
-    
-    // Hardcoded Payload for 24H Drip Feed
-    const payload = {
-        link: videoLink,
-        service: "1224",    // SMM Raja Views
-        quantity: 400,      // Total: 400 (4 runs of 100 views)
-        runs: 4,            // 4 executions
-        interval: 360,      // 6 Hours in minutes
-        provider: "smmRaja" // Defaults to SMM Raja backend logic
-    };
-
-    const originalContent = btnElement.innerHTML;
-    btnElement.innerHTML = "⏳";
-    btnElement.disabled = true;
-    btnElement.classList.add('btn-loading');
-
-    try {
-        const response = await fetch(SMM_BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (response.ok && !data.error) {
-            showToast("Automation active for 24 Hours!", "success");
-            
-            const now = new Date();
-            const dateStr = now.getDate() + ' - ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            
-            // Lock the button in Firestore by saving the server timestamp
-            await db.collection('videos').doc(videoId).update({
-                lastAutoOrderAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastSmmOrder: `${dateStr} (AUTO 24H Drip-Feed)`
-            });
-            
-            // The row will automatically re-render and lock the button because of your snapshot listener!
-            
-        } else {
-            // Catch hidden SMM Raja errors
-            showToast(`API Rejected: ${data.error || 'Unknown Error'}`, "error");
-            btnElement.innerHTML = originalContent;
-            btnElement.disabled = false;
-        }
-    } catch (error) {
-        console.error(error);
-        showToast("Network Error: Could not reach backend", "error");
-        btnElement.innerHTML = originalContent;
-        btnElement.disabled = false;
-    } finally {
         btnElement.classList.remove('btn-loading');
     }
 }

@@ -652,40 +652,24 @@
     z-index: 10000;
 }
 
-/* Standalone Automation Button (Lightning Bolt) */
-.standalone-auto-btn {
-    background: transparent;
-    border: 1px solid rgba(243, 156, 18, 0.4);
-    color: #f39c12;
-    border-radius: 6px;
-    padding: 6px 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    min-width: 40px;
-    height: 30px; /* Matches the height of the toggle group perfectly */
-}
-
-.standalone-auto-btn:hover:not(:disabled) {
-    background: rgba(243, 156, 18, 0.15);
+/* Custom styling for Auto Quantity Buttons to separate them from Manual Green */
+.auto-qty-btn {
     border-color: #f39c12;
-    transform: translateY(-1px);
+    color: #f39c12;
 }
 
-.standalone-auto-btn.btn-loading {
-    opacity: 0.7;
-    cursor: wait;
+.auto-qty-btn:hover:not(:disabled) {
+    background: #f39c12;
+    color: #121212;
 }
 
-/* 24-Hour Cooldown State */
-.standalone-auto-btn.disabled-auto {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px dashed rgba(255, 255, 255, 0.1);
-    color: #555;
-    cursor: not-allowed;
-    transform: none;
+/* Hard override for the 24-Hour Cooldown lock */
+.auto-qty-btn.disabled-auto {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.1) !important;
+    color: #555 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
 }
 
 /* ==========================================================================

@@ -194,7 +194,7 @@ async function submitSmmOrder(e, videoId, videoLink, quantity, btnElement) {
     // Map the IDs based on provider and mode combinations
     if (provider === 'smmRaja' && mode === 'views') { serviceId = '1224'; serviceName = 'Views (R)'; }
     if (provider === 'smmRaja' && mode === 'likes') { serviceId = '2150'; serviceName = 'Likes (R)'; }
-    if (provider === 'smmPanelOne' && mode === 'views') { serviceId = '8429'; serviceName = 'Views (O)'; }
+    if (provider === 'smmPanelOne' && mode === 'views') { serviceId = '17354'; serviceName = 'Views (O)'; }
     if (provider === 'smmPanelOne' && mode === 'likes') { serviceId = '12981'; serviceName = 'Likes (O)'; }
 
     // Instant UI Feedback (Now supports both Text Buttons and SVG Arrow buttons)

@@ -262,11 +262,18 @@
     <div id="legacy-modal" class="modal-overlay hidden">
         <div class="modal-content testimonial-card">
             <h3>UPDATE REVENUE</h3>
-            <p style="color: #aaa; font-size: 12px; margin-bottom: 15px;">Enter the beta revenue generated so far.</p>
-            <input type="number" id="legacy-input" placeholder="Amount ($)" class="mamba-input">
+            <p style="color: #aaa; font-size: 12px; margin-bottom: 15px;">Quick add new earnings or manually override the total.</p>
+            
+            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #333;">
+                <label style="font-size: 10px; color: #2ecc71; text-transform: uppercase; font-weight: bold;">+ Add New Earnings ($)</label>
+                <input type="number" id="legacy-add-input" placeholder="e.g. 200" class="mamba-input" oninput="calculateNewTotal()" style="border-color: rgba(46, 204, 113, 0.3);">
+            </div>
+
+            <label style="font-size: 10px; color: #666; text-transform: uppercase;">Final Total ($)</label>
+            <input type="number" id="legacy-input" placeholder="Total Amount" class="mamba-input">
             
             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="cta-button" onclick="updateLegacyRevenue()">UPDATE</button>
+                <button class="cta-button" onclick="updateLegacyRevenue()">SAVE</button>
                 <button class="cta-button" style="border-color: #444; color: #aaa;" onclick="toggleLegacyModal(false)">CANCEL</button>
             </div>
         </div>

@@ -211,10 +211,23 @@ function toggleLegacyModal(show) {
     const modal = document.getElementById('legacy-modal');
     if (show) {
         document.getElementById('legacy-input').value = betaRevenue;
+        
+        // NEW: Clear the 'Add' input every time the modal opens
+        const addInput = document.getElementById('legacy-add-input');
+        if (addInput) addInput.value = '';
+        
         modal.classList.remove('hidden');
     } else {
         modal.classList.add('hidden');
     }
+}
+
+// NEW: Live calculator function
+function calculateNewTotal() {
+    const addVal = parseFloat(document.getElementById('legacy-add-input').value) || 0;
+    
+    // Instantly add the new value to the existing betaRevenue and show it in the main input
+    document.getElementById('legacy-input').value = betaRevenue + addVal;
 }
 
 function openLegacyModal() {
@@ -245,8 +258,6 @@ async function updateLegacyRevenue() {
     showLoading(false);
 }
 
-// Helper to fetch the custom CPM
-// Helper to fetch the custom CPM
 // Helper to fetch the custom CPM
 function getProfileCpm(user, platform, profileKey) {
     if (!profileKey) return 1.50;

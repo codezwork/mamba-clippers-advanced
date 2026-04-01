@@ -713,13 +713,23 @@ function createVideoRow(video) {
 }
 
 async function submitNewVideo() {
-    const title = document.getElementById('new-title').value.trim();
     const link = document.getElementById('new-link').value.trim();
     
-    if(!title || !link) {
-        showToast('Please fill all fields', 'error');
+    if(!link) {
+        showToast('Please provide a video link', 'error');
         return;
     }
+
+    // NEW: Smarter auto-naming to prevent duplicate numbers after deletion
+    let maxNumber = 0;
+    appData.forEach(video => {
+        const num = parseInt(video.title);
+        if (!isNaN(num) && num > maxNumber) {
+            maxNumber = num;
+        }
+    });
+    
+    const title = String(maxNumber + 1);
 
     toggleAddModal(false);
     showLoading(true);
@@ -728,7 +738,7 @@ async function submitNewVideo() {
         person: currentUser,
         platform: currentPlatform,
         profile: currentProfileKey,
-        title: title,
+        title: title, 
         link: link,
         status: "Pending", 
         views: 0,
@@ -738,8 +748,7 @@ async function submitNewVideo() {
     try {
         await db.collection('videos').add(newVideo);
         showToast('Video added successfully!', 'success');
-        document.getElementById('new-title').value = "";
-        document.getElementById('new-link').value = "";
+        document.getElementById('new-link').value = ""; 
     } catch (error) {
         showToast('Failed to save video', 'error');
         console.error(error);
@@ -871,6 +880,21 @@ function enterSelectionMode(initialId) {
     renderDashboard();
 }
 
+function toggleSelectAll() {
+    // Check if all displayed videos are currently selected
+    const allSelected = appData.length > 0 && selectedVideoIds.size === appData.length;
+    
+    if (allSelected) {
+        // If all are selected, deselect them all
+        selectedVideoIds.clear();
+    } else {
+        // Otherwise, select every video currently in appData
+        appData.forEach(video => selectedVideoIds.add(video.id));
+    }
+    
+    updateSelectionUI();
+}
+
 function exitSelectionMode() {
     isSelectionMode = false; selectedVideoIds.clear();
     document.body.classList.remove('selection-mode');
@@ -899,6 +923,15 @@ function updateSelectionUI() {
     } else {
         fab.innerHTML = "SELECT ITEMS";
         fab.classList.remove('fab-delete-mode');
+    }
+    // NEW: Update Select All button text
+    const selectAllBtn = document.getElementById('select-all-btn');
+    if (selectAllBtn) {
+        if (appData.length > 0 && selectedVideoIds.size === appData.length) {
+            selectAllBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> DESELECT ALL`;
+        } else {
+             selectAllBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> SELECT ALL`;
+        }
     }
 }
 

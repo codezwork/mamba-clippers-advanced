@@ -212,7 +212,12 @@
                         </div>
                     </div>
 
-                    <div id="selection-actions" class="hidden" style="display: flex; align-items: center;">
+                    <div id="selection-actions" class="hidden" style="display: flex; align-items: center; gap: 10px;">
+                        <button id="select-all-btn" class="cta-button" onclick="toggleSelectAll()" style="padding: 6px 15px; border-width: 1px; font-size: 12px; display: flex; align-items: center; gap: 5px; color: #fff; border-color: #666;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                            SELECT ALL
+                        </button>
+                        
                         <button class="cta-button" onclick="exitSelectionMode()" style="padding: 6px 15px; border-width: 1px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             CANCEL
@@ -271,7 +276,7 @@
         <div class="modal-content testimonial-card">
             <h3>ADD NEW VIDEO</h3>
             <p id="add-modal-subtitle" style="color: #666; font-size: 12px; margin-bottom: 10px;"></p>
-            <input type="text" id="new-title" placeholder="Video Title" class="mamba-input">
+            
             <input type="text" id="new-link" placeholder="Video Link" class="mamba-input">
             
             <div style="display: flex; gap: 10px; margin-top: 20px;">

@@ -38,6 +38,29 @@
     <section id="home-view" class="app-view active">
         <div class="container">
             <div class="hero-content" style="padding-top: 60px; text-align: center;">
+                
+                <div class="funds-wrapper">
+                    <div class="smm-funds-widget">
+                        <svg class="wallet-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/>
+                            <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/>
+                            <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/>
+                        </svg>
+                        <span class="fund-text">
+                            R : <span id="raja-balance" class="fund-amount">₹--</span> 
+                            <span class="divider">||</span> 
+                            O : <span id="panel-one-balance" class="fund-amount">₹--</span>
+                        </span>
+                        <button id="refresh-funds-btn" class="fund-refresh-btn" onclick="fetchSmmBalances()" title="Sync Balances">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 4v6h-6"></path>
+                                <path d="M1 20v-6h6"></path>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
                 <h1>ELITE <span class="highlight">CLIPPERS</span></h1>
                 
                 <div id="legacy-revenue-container" style="margin-bottom: 40px; cursor: pointer;" onclick="openLegacyModal()">

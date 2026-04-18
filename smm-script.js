@@ -249,3 +249,40 @@ async function submitSmmOrder(e, videoId, videoLink, quantity, btnElement) {
         btnElement.classList.remove('btn-loading');
     }
 }
+
+// Make sure this points to your deployed backend URL
+const SMM_BALANCE_URL = "https://mamba-clippers-backend-smm.onrender.com/api/smm-balance";
+
+async function fetchSmmBalances() {
+    const btn = document.getElementById('refresh-funds-btn');
+    const rajaBal = document.getElementById('raja-balance');
+    const panelOneBal = document.getElementById('panel-one-balance');
+
+    // Trigger visual spinning effect
+    if (btn) btn.classList.add('spinning');
+
+    try {
+        const response = await fetch(SMM_BALANCE_URL);
+        
+        if (!response.ok) throw new Error("Network response was not ok");
+        
+        const data = await response.json();
+        
+        // Update the DOM if data is returned
+        if (data.raja !== undefined) rajaBal.innerText = `₹${data.raja}`;
+        if (data.panelOne !== undefined) panelOneBal.innerText = `₹${data.panelOne}`;
+        
+    } catch (error) {
+        console.error("Failed to fetch SMM balances:", error);
+        showToast("SMM Funds offline", "error");
+    } finally {
+        // Stop spinning effect
+        if (btn) btn.classList.remove('spinning');
+    }
+}
+
+// Auto-fetch balances silently when the app loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait 1.5 seconds so it doesn't interrupt the premium splash screen animation
+    setTimeout(fetchSmmBalances, 1500); 
+});

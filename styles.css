@@ -797,3 +797,74 @@
     .smm-custom-input { width: 50px; }
     .cpm-input { min-width: 60px !important; width: 60px !important; }
 }
+
+/* ==========================================================================
+   SMM FUNDS WIDGET
+   ========================================================================== */
+.funds-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start; /* Aligns to top left */
+    margin-bottom: 15px;
+}
+
+.smm-funds-widget {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 68, 68, 0.2);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #aaa;
+    letter-spacing: 0.5px;
+    transition: border-color 0.3s ease;
+}
+
+.smm-funds-widget:hover {
+    border-color: rgba(255, 68, 68, 0.5);
+}
+
+.smm-funds-widget .wallet-icon {
+    color: #ff4444;
+}
+
+.smm-funds-widget .fund-amount {
+    color: #2ecc71; /* Green color to represent money */
+    font-weight: bold;
+}
+
+.smm-funds-widget .divider {
+    color: #444;
+    margin: 0 4px;
+}
+
+.fund-refresh-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    margin-left: 4px;
+}
+
+.fund-refresh-btn:hover {
+    color: #ff4444;
+}
+
+/* Spinning Animation for Loading State */
+.fund-refresh-btn.spinning svg {
+    animation: spin 1s linear infinite;
+    color: #2ecc71;
+}
+
+@media (max-width: 480px) {
+    .funds-wrapper {
+        justify-content: center; /* Centers on mobile so it doesn't break padding */
+    }
+}

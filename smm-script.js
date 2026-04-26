@@ -17,12 +17,12 @@ function setSmmProvider(e, videoId, provider) {
     panel.dataset.provider = provider; // Save state to DOM
 
     // Reset styles
-    document.getElementById(`prov-raja-${videoId}`).classList.remove('active');
+    document.getElementById(`prov-lite-${videoId}`).classList.remove('active');
     document.getElementById(`prov-one-${videoId}`).classList.remove('active');
 
     // Add active style to selected
-    if (provider === 'smmRaja') {
-        document.getElementById(`prov-raja-${videoId}`).classList.add('active');
+    if (provider === 'smmLite') {
+        document.getElementById(`prov-lite-${videoId}`).classList.add('active');
     } else {
         document.getElementById(`prov-one-${videoId}`).classList.add('active');
     }
@@ -94,8 +94,8 @@ async function fireAutomation(e, videoId, videoLink, totalQuantity, btnElement) 
     let serviceId = '';
     let serviceName = '';
 
-    if (provider === 'smmRaja' && mode === 'views') { serviceId = '7235'; serviceName = 'Views (R)'; }
-    if (provider === 'smmRaja' && mode === 'likes') { serviceId = '2150'; serviceName = 'Likes (R)'; }
+    if (provider === 'smmLite' && mode === 'views') { serviceId = '7378'; serviceName = 'Views (L)'; }
+    if (provider === 'smmLite' && mode === 'likes') { serviceId = '6944'; serviceName = 'Likes (L)'; }
     if (provider === 'smmPanelOne' && mode === 'views') { serviceId = '17354'; serviceName = 'Views (O)'; }
     if (provider === 'smmPanelOne' && mode === 'likes') { serviceId = '12981'; serviceName = 'Likes (O)'; }
 
@@ -192,8 +192,8 @@ async function submitSmmOrder(e, videoId, videoLink, quantity, btnElement) {
     let serviceName = '';
 
     // Map the IDs based on provider and mode combinations
-    if (provider === 'smmRaja' && mode === 'views') { serviceId = '7235'; serviceName = 'Views (R)'; }
-    if (provider === 'smmRaja' && mode === 'likes') { serviceId = '2150'; serviceName = 'Likes (R)'; }
+    if (provider === 'smmLite' && mode === 'views') { serviceId = '7378'; serviceName = 'Views (L)'; }
+    if (provider === 'smmLite' && mode === 'likes') { serviceId = '6944'; serviceName = 'Likes (L)'; }
     if (provider === 'smmPanelOne' && mode === 'views') { serviceId = '17354'; serviceName = 'Views (O)'; }
     if (provider === 'smmPanelOne' && mode === 'likes') { serviceId = '12981'; serviceName = 'Likes (O)'; }
 
@@ -255,7 +255,7 @@ const SMM_BALANCE_URL = "https://mamba-clippers-backend-smm.onrender.com/api/smm
 
 async function fetchSmmBalances() {
     const btn = document.getElementById('refresh-funds-btn');
-    const rajaBal = document.getElementById('raja-balance');
+    const liteBal = document.getElementById('lite-balance'); // Changed ID
     const panelOneBal = document.getElementById('panel-one-balance');
 
     // Trigger visual spinning effect
@@ -269,8 +269,8 @@ async function fetchSmmBalances() {
         const data = await response.json();
         
         // Update the DOM if data is returned
-        if (data.raja !== undefined) rajaBal.innerText = `₹${data.raja}`;
-        if (data.panelOne !== undefined) panelOneBal.innerText = `₹${data.panelOne}`;
+        if (data.lite !== undefined && liteBal) liteBal.innerText = `₹${data.lite}`; // Changed property and element
+        if (data.panelOne !== undefined && panelOneBal) panelOneBal.innerText = `₹${data.panelOne}`;
         
     } catch (error) {
         console.error("Failed to fetch SMM balances:", error);

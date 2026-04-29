@@ -105,11 +105,15 @@ async function fireAutomation(e, videoId, videoLink, totalQuantity, btnElement) 
     }
     
     // Dynamic Payload
+    // Dynamic Payload
+    const runsCount = 4; // Set the number of runs here
+    
     const payload = {
         link: videoLink,
         service: serviceId,
-        quantity: totalQuantity,
-        runs: 4,            
+        // NEW: Divide the total by the number of runs for SMM Lite
+        quantity: totalQuantity / runsCount, 
+        runs: runsCount,            
         interval: 360,      
         provider: provider
     };
